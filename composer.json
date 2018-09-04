@@ -1,8 +1,8 @@
 {
-    "name": "easyengine/site-wp-command",
-    "description": "EasyEngine package for WordPress site creation.",
+    "name": "easyengine/site-type-php",
+    "description": "EasyEngine package for PHP site creation.",
     "type": "ee-cli-package",
-    "homepage": "https://github.com/easyengine/site-wp-command",
+    "homepage": "https://github.com/easyengine/site-type-php",
     "license": "MIT",
     "authors": [],
     "minimum-stability": "dev",

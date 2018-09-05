@@ -15,7 +15,7 @@ use function \EE\Site\Utils\get_site_info;
  * ## EXAMPLES
  *
  *     # Create simple PHP site
- *     $ ee site create example.com --wp
+ *     $ ee site create example.com --type=php
  *
  * @package ee-cli
  */
@@ -83,7 +83,10 @@ class PHP extends EE_Site_Command {
 	 * [--cache]
 	 * : Use redis cache for PHP.
 	 *
-	 *  [--db]
+	 * [--admin-email=<admin-email>]
+	 * : E-Mail of the administrator.
+	 *
+	 *  [--with-db]
 	 * : Create database for php site.
 	 *
 	 * [--dbname=<dbname>]
@@ -135,9 +138,9 @@ class PHP extends EE_Site_Command {
 		$this->site_data['site_ssl']          = \EE\Utils\get_flag_value( $assoc_args, 'ssl' );
 		$this->site_data['site_ssl_wildcard'] = \EE\Utils\get_flag_value( $assoc_args, 'wildcard' );
 
-		if ( ! empty( $assoc_args['db'] ) ) {
+		if ( ! empty( $assoc_args['with-db'] ) ) {
 			$this->site_data['db_name']          = str_replace( [ '.', '-' ], '_', $this->site_data['site_url'] );
-			$this->site_data['db_host']          = \EE\Utils\get_flag_value( $assoc_args, 'dbhost' );
+			$this->site_data['db_host']          = \EE\Utils\get_flag_value( $assoc_args, 'dbhost', 'db' );
 			$this->site_data['db_port']          = '3306';
 			$this->site_data['db_user']          = \EE\Utils\get_flag_value( $assoc_args, 'dbuser', $this->create_site_db_user( $this->site_data['site_url'] ) );
 			$this->site_data['db_password']      = \EE\Utils\get_flag_value( $assoc_args, 'dbpass', \EE\Utils\random_password() );
@@ -153,7 +156,7 @@ class PHP extends EE_Site_Command {
 				$this->site_data['db_port'] = empty( $arg_host_port[1] ) ? '3306' : $arg_host_port[1];
 			}
 		}
-
+		$this->site_data['app_admin_email'] = \EE\Utils\get_flag_value( $assoc_args, 'admin_email', strtolower( 'admin@' . $this->site_data['site_url'] ) );
 		$this->skip_status_check = \EE\Utils\get_flag_value( $assoc_args, 'skip-status-check' );
 		$this->force             = \EE\Utils\get_flag_value( $assoc_args, 'force' );
 
@@ -208,6 +211,7 @@ class PHP extends EE_Site_Command {
 			$info[] = [ 'DB Password', $this->site_data['db_password'] ];
 		}
 
+		$info[] = [ 'E-Mail', $this->site_data['app_admin_email'] ];
 		$info[] = [ 'SSL', $ssl ];
 
 		if ( $this->site_data['site_ssl'] ) {
@@ -262,7 +266,9 @@ class PHP extends EE_Site_Command {
 		$docker_compose_content = $site_docker->generate_docker_compose_yml( $filter );
 		$default_conf_content   = $this->generate_default_conf( $this->cache_type, $server_name );
 
-		$php_ini_data = [];
+		$php_ini_data = [
+			'admin_email' => $this->site_data['app_admin_email'],
+		];
 
 		$env_content     = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/.env.mustache', $env_data );
 		$php_ini_content = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/php-fpm/php.ini.mustache', $php_ini_data );
@@ -350,7 +356,7 @@ class PHP extends EE_Site_Command {
 
 			$containers = [ 'nginx', 'postfix' ];
 
-			if ( ! empty( $assoc_args['db'] ) ) {
+			if ( ! empty( $assoc_args['with-db'] ) && 'db' === $this->site_data['db_host'] ) {
 				$this->maybe_verify_remote_db_connection();
 				$containers[] = 'db';
 			}
@@ -371,7 +377,7 @@ class PHP extends EE_Site_Command {
 
 			if ( $this->site_data['site_ssl'] ) {
 				$wildcard = $this->site_data['site_ssl_wildcard'];
-				\EE::debug( 'Wildcard in site wp command: ' . $this->site_data['site_ssl_wildcard'] );
+				\EE::debug( 'Wildcard in site php command: ' . $this->site_data['site_ssl_wildcard'] );
 				$this->init_ssl( $this->site_data['site_url'], $this->site_data['site_fs_path'], $this->site_data['site_ssl'], $wildcard );
 
 				\EE\Site\Utils\add_site_redirects( $this->site_data['site_url'], true, 'inherit' === $this->site_data['site_ssl'] );
@@ -398,6 +404,7 @@ class PHP extends EE_Site_Command {
 		$data = [
 			'site_url'             => $this->site_data['site_url'],
 			'site_type'            => $this->site_data['site_type'],
+			'app_admin_email'      => $this->site_data['app_admin_email'],
 			'cache_nginx_browser'  => (int) $this->cache_type,
 			'cache_nginx_fullpage' => (int) $this->cache_type,
 			'cache_mysql_query'    => (int) $this->cache_type,

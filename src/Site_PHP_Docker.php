@@ -53,6 +53,11 @@ class Site_PHP_Docker {
 		// PHP configuration.
 		$php['service_name'] = [ 'name' => 'php' ];
 		$php['image']        = [ 'name' => 'easyengine/php:' . $img_versions['easyengine/php'] ];
+
+		if ( in_array( 'db', $filters, true ) ) {
+			$php['depends_on'] = [ 'name' => 'db' ];
+		}
+
 		$php['restart']      = $restart_default;
 		$php['labels']       = [
 			'label' => [

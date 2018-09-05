@@ -83,9 +83,6 @@ class PHP extends EE_Site_Command {
 	 * [--cache]
 	 * : Use redis cache for PHP.
 	 *
-	 * [--admin-email=<admin-email>]
-	 * : E-Mail of the administrator.
-	 *
 	 *  [--db]
 	 * : Create database for php site.
 	 *
@@ -211,7 +208,6 @@ class PHP extends EE_Site_Command {
 			$info[] = [ 'DB Password', $this->site_data['db_password'] ];
 		}
 
-		$info[] = [ 'E-Mail', '' ];
 		$info[] = [ 'SSL', $ssl ];
 
 		if ( $this->site_data['site_ssl'] ) {
@@ -266,10 +262,7 @@ class PHP extends EE_Site_Command {
 		$docker_compose_content = $site_docker->generate_docker_compose_yml( $filter );
 		$default_conf_content   = $this->generate_default_conf( $this->cache_type, $server_name );
 
-		$php_ini_data = [
-			// @todo: add email flag in create.
-			'admin_email' => 'example@example.com',
-		];
+		$php_ini_data = [];
 
 		$env_content     = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/.env.mustache', $env_data );
 		$php_ini_content = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/php-fpm/php.ini.mustache', $php_ini_data );
@@ -291,7 +284,7 @@ class PHP extends EE_Site_Command {
 			];
 			$index_html = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/index.php.mustache', $index_data );
 			$this->fs->mkdir( $site_src_dir );
-			$this->fs->dumpFile( $site_src_dir . '/index.html', $index_html );
+			$this->fs->dumpFile( $site_src_dir . '/index.php', $index_html );
 
 			\EE::success( 'Configuration files copied.' );
 		} catch ( \Exception $e ) {

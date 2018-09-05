@@ -134,9 +134,9 @@ class PHP extends EE_Site_Command {
 			\EE::error( sprintf( "Site %1\$s already exists. If you want to re-create it please delete the older one using:\n`ee site delete %1\$s`", $this->site_data['site_url'] ) );
 		}
 
-		$this->cache_type                      = \EE\Utils\get_flag_value( $assoc_args, 'cache' );
-		$this->site_data['site_ssl']           = \EE\Utils\get_flag_value( $assoc_args, 'ssl' );
-		$this->site_data['site_ssl_wildcard']  = \EE\Utils\get_flag_value( $assoc_args, 'wildcard' );
+		$this->cache_type                     = \EE\Utils\get_flag_value( $assoc_args, 'cache' );
+		$this->site_data['site_ssl']          = \EE\Utils\get_flag_value( $assoc_args, 'ssl' );
+		$this->site_data['site_ssl_wildcard'] = \EE\Utils\get_flag_value( $assoc_args, 'wildcard' );
 
 		if ( ! empty( $assoc_args['db'] ) ) {
 			$this->site_data['db_name']          = str_replace( [ '.', '-' ], '_', $this->site_data['site_url'] );
@@ -157,9 +157,8 @@ class PHP extends EE_Site_Command {
 			}
 		}
 
-
-		$this->skip_status_check            = \EE\Utils\get_flag_value( $assoc_args, 'skip-status-check' );
-		$this->force                        = \EE\Utils\get_flag_value( $assoc_args, 'force' );
+		$this->skip_status_check = \EE\Utils\get_flag_value( $assoc_args, 'skip-status-check' );
+		$this->force             = \EE\Utils\get_flag_value( $assoc_args, 'force' );
 
 		\EE\Site\Utils\init_checks();
 
@@ -242,13 +241,13 @@ class PHP extends EE_Site_Command {
 		\EE::log( 'Creating PHP site ' . $this->site_data['site_url'] );
 		\EE::log( 'Copying configuration files.' );
 
-		$filter                 = [];
-		$filter[]               = $this->cache_type ? 'redis' : 'none';
+		$filter   = [];
+		$filter[] = $this->cache_type ? 'redis' : 'none';
 
 		$env_data = [
-			'virtual_host'  => $this->site_data['site_url'],
-			'user_id'       => $process_user['uid'],
-			'group_id'      => $process_user['gid'],
+			'virtual_host' => $this->site_data['site_url'],
+			'user_id'      => $process_user['uid'],
+			'group_id'     => $process_user['gid'],
 		];
 
 		if ( ! empty( $this->site_data['db_host'] ) ) {
@@ -266,7 +265,6 @@ class PHP extends EE_Site_Command {
 		$site_docker            = new Site_PHP_Docker();
 		$docker_compose_content = $site_docker->generate_docker_compose_yml( $filter );
 		$default_conf_content   = $this->generate_default_conf( $this->cache_type, $server_name );
-
 
 		$php_ini_data = [
 			// @todo: add email flag in create.
@@ -312,9 +310,9 @@ class PHP extends EE_Site_Command {
 	 */
 	private function generate_default_conf( $cache_type, $server_name ) {
 
-		$default_conf_data['server_name']           = $server_name;
-		$default_conf_data['include_php_conf']      = ! $cache_type;
-		$default_conf_data['include_redis_conf']    = $cache_type;
+		$default_conf_data['server_name']        = $server_name;
+		$default_conf_data['include_php_conf']   = ! $cache_type;
+		$default_conf_data['include_redis_conf'] = $cache_type;
 
 		return \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/nginx/default.conf.mustache', $default_conf_data );
 	}
@@ -328,7 +326,7 @@ class PHP extends EE_Site_Command {
 		// Docker needs special handling if we want to connect to host machine.
 		// The since we're inside the container and we want to access host machine,
 		// we would need to replace localhost with default gateway.
-		if ( $this->site_data['db_host'] === '127.0.0.1' || $this->site_data['db_host'] === 'localhost' ) {
+		if ( '127.0.0.1' === $this->site_data['db_host'] || 'localhost' === $this->site_data['db_host'] ) {
 			$launch = \EE::exec( sprintf( "docker network inspect %s --format='{{ (index .IPAM.Config 0).Gateway }}'", $this->site_data['site_url'] ), false, true );
 
 			if ( ! $launch->return_code ) {
@@ -357,11 +355,11 @@ class PHP extends EE_Site_Command {
 			\EE\Site\Utils\create_site_root( $this->site_data['site_fs_path'], $this->site_data['site_url'] );
 			$this->level = 2;
 
-			$containers = ['nginx', 'postfix'];
+			$containers = [ 'nginx', 'postfix' ];
 
 			if ( ! empty( $assoc_args['db'] ) ) {
 				$this->maybe_verify_remote_db_connection();
-				$containers[]= 'db';
+				$containers[] = 'db';
 			}
 			$this->level = 3;
 			$this->configure_site_files();

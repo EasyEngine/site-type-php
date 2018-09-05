@@ -157,8 +157,8 @@ class PHP extends EE_Site_Command {
 			}
 		}
 		$this->site_data['app_admin_email'] = \EE\Utils\get_flag_value( $assoc_args, 'admin_email', strtolower( 'admin@' . $this->site_data['site_url'] ) );
-		$this->skip_status_check = \EE\Utils\get_flag_value( $assoc_args, 'skip-status-check' );
-		$this->force             = \EE\Utils\get_flag_value( $assoc_args, 'force' );
+		$this->skip_status_check            = \EE\Utils\get_flag_value( $assoc_args, 'skip-status-check' );
+		$this->force                        = \EE\Utils\get_flag_value( $assoc_args, 'force' );
 
 		\EE\Site\Utils\init_checks();
 
@@ -455,7 +455,15 @@ class PHP extends EE_Site_Command {
 	 * : Restart db container of site.
 	 */
 	public function restart( $args, $assoc_args, $whitelisted_containers = [] ) {
-		$whitelisted_containers = [ 'nginx', 'php', 'db' ];
+
+		$args            = auto_site_name( $args, 'php', __FUNCTION__ );
+		$this->site_data = get_site_info( $args, false );
+
+		$whitelisted_containers = [ 'nginx', 'php' ];
+
+		if ( ! empty( $this->site_data['db_host'] ) ) {
+			$whitelisted_containers[] = 'db';
+		}
 		parent::restart( $args, $assoc_args, $whitelisted_containers );
 	}
 

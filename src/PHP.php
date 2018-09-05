@@ -137,8 +137,10 @@ class PHP extends EE_Site_Command {
 		$this->cache_type                     = \EE\Utils\get_flag_value( $assoc_args, 'cache' );
 		$this->site_data['site_ssl']          = \EE\Utils\get_flag_value( $assoc_args, 'ssl' );
 		$this->site_data['site_ssl_wildcard'] = \EE\Utils\get_flag_value( $assoc_args, 'wildcard' );
+		$this->site_data['app_sub_type']      = 'php';
 
 		if ( ! empty( $assoc_args['with-db'] ) ) {
+			$this->site_data['app_sub_type']     = 'mysql';
 			$this->site_data['db_name']          = str_replace( [ '.', '-' ], '_', $this->site_data['site_url'] );
 			$this->site_data['db_host']          = \EE\Utils\get_flag_value( $assoc_args, 'dbhost', 'db' );
 			$this->site_data['db_port']          = '3306';
@@ -204,7 +206,7 @@ class PHP extends EE_Site_Command {
 			$info[] = [ 'Access admin-tools', $prefix . $this->site_data['site_url'] . '/ee-admin/' ];
 		}
 
-		if ( ! empty( $this->site_data['db_host'] ) ) {
+		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$info[] = [ 'DB Root Password', $this->site_data['db_root_password'] ];
 			$info[] = [ 'DB Name', $this->site_data['db_name'] ];
 			$info[] = [ 'DB User', $this->site_data['db_user'] ];
@@ -250,7 +252,7 @@ class PHP extends EE_Site_Command {
 			'group_id'     => $process_user['gid'],
 		];
 
-		if ( ! empty( $this->site_data['db_host'] ) ) {
+		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$filter[] = $this->site_data['db_host'];
 			$local    = ( 'db' === $this->site_data['db_host'] ) ? true : false;
 			$db_host  = $local ? $this->site_data['db_host'] : $this->site_data['db_host'] . ':' . $this->site_data['db_port'];
@@ -413,9 +415,10 @@ class PHP extends EE_Site_Command {
 			'site_ssl_wildcard'    => $this->site_data['site_ssl_wildcard'] ? 1 : 0,
 			'php_version'          => '7.2',
 			'created_on'           => date( 'Y-m-d H:i:s', time() ),
+			'app_sub_type'         => $this->site_data['app_sub_type'],
 		];
 
-		if ( ! empty( $this->site_data['db_host'] ) ) {
+		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$data['db_name']          = $this->site_data['db_name'];
 			$data['db_user']          = $this->site_data['db_user'];
 			$data['db_host']          = $this->site_data['db_host'];
@@ -461,7 +464,7 @@ class PHP extends EE_Site_Command {
 
 		$whitelisted_containers = [ 'nginx', 'php' ];
 
-		if ( ! empty( $this->site_data['db_host'] ) ) {
+		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$whitelisted_containers[] = 'db';
 		}
 		parent::restart( $args, $assoc_args, $whitelisted_containers );

@@ -1,5 +1,5 @@
 .DS_Store
-ee-cli.local.yml
+ee.local.yml
 node_modules/
 vendor/
 *.zip

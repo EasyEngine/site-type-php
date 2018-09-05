@@ -1,0 +1,24 @@
+{
+    "name": "easyengine/site-type-php",
+    "description": "EasyEngine package for PHP site creation.",
+    "type": "ee-cli-package",
+    "homepage": "https://github.com/easyengine/site-type-php",
+    "license": "MIT",
+    "authors": [],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "": "src/"
+        }
+    },
+    "require-dev": {
+        "wp-cli/mustangostang-spyc": "^0.6.3"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.x-dev"
+        },
+        "bundled": true
+    }
+}

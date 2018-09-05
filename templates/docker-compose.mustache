@@ -1,0 +1,59 @@
+version: '3.5'
+
+services:
+
+{{#services}}
+  {{#service_name}}
+  {{name}}:
+  {{/service_name}}
+    {{#image}}
+    image: {{name}}
+    {{/image}}
+    {{#hostname}}
+    hostname: {{name}}
+    {{/hostname}}
+    {{#depends_on}}
+    depends_on:
+      - {{name}}
+    {{/depends_on}}
+    {{#restart}}
+    restart: {{name}}
+    {{/restart}}
+    {{#command}}
+    command: {{name}}
+    {{/command}}
+    {{#labels}}
+    labels:
+    {{#label}}
+      - "{{name}}"
+    {{/label}}
+    {{/labels}}
+    {{#volumes}}
+    volumes:
+    {{#vol}}
+      - "{{name}}"
+    {{/vol}}
+    {{/volumes}}
+    {{#environment}}
+    environment:
+    {{#env}}
+      - {{name}}
+    {{/env}}
+    {{/environment}}
+    {{#networks}}
+    networks:
+    {{#net}}
+      - {{name}}
+    {{/net}}
+    {{/networks}}
+
+{{/services}}
+
+{{#network}}
+networks:
+  site-network:
+    name: ${VIRTUAL_HOST}
+  global-network:
+    external:
+      name: ee-global-network
+{{/network}}

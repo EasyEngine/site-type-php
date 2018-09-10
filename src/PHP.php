@@ -4,10 +4,10 @@ declare( ticks=1 );
 
 namespace EE\Site\Type;
 
-use \Symfony\Component\Filesystem\Filesystem;
-use \EE\Model\Site;
-use function \EE\Site\Utils\auto_site_name;
-use function \EE\Site\Utils\get_site_info;
+use EE\Model\Site;
+use Symfony\Component\Filesystem\Filesystem;
+use function EE\Site\Utils\auto_site_name;
+use function EE\Site\Utils\get_site_info;
 
 /**
  * Creates a simple PHP Website.
@@ -121,6 +121,24 @@ class PHP extends EE_Site_Command {
 	 *
 	 * [--force]
 	 * : Resets the remote database if it is not empty.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Create php site (without db)
+	 *     $ ee site create example.com --type=php
+	 *
+	 *     # Create php site with db
+	 *     $ ee site create example.com --type=php --with-db
+	 *
+	 *     # Create php site with ssl from letsencrypt
+	 *     $ ee site create example.com --type=php --ssl=le
+	 *
+	 *     # Create php site with wildcard ssl
+	 *     $ ee site create example.com --type=php --ssl=le --wildcard
+	 *
+	 *     # Create php site with remote database
+	 *     $ ee site create example.com --type=php --with-db --dbhost=localhost --dbuser=username --dbpass=password
+	 *
 	 */
 	public function create( $args, $assoc_args ) {
 
@@ -190,6 +208,12 @@ class PHP extends EE_Site_Command {
 	 *
 	 * [<site-name>]
 	 * : Name of the website whose info is required.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Display site info
+	 *     $ ee site info example.com
+	 *
 	 */
 	public function info( $args, $assoc_args ) {
 
@@ -456,6 +480,15 @@ class PHP extends EE_Site_Command {
 	 *
 	 * [--db]
 	 * : Restart db container of site.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Restart all containers of site
+	 *     $ ee site restart example.com
+	 *
+	 *     # Restart single container of site
+	 *     $ ee site restart example.com --nginx
+	 *
 	 */
 	public function restart( $args, $assoc_args, $whitelisted_containers = [] ) {
 
@@ -485,6 +518,15 @@ class PHP extends EE_Site_Command {
 	 *
 	 * [--php]
 	 * : Reload php container of site.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Reload all containers of site
+	 *     $ ee site reload example.com
+	 *
+	 *     # Reload single containers of site
+	 *     $ ee site reload example.com --nginx
+	 *
 	 */
 	public function reload( $args, $assoc_args, $whitelisted_containers = [], $reload_commands = [] ) {
 		$whitelisted_containers = [ 'nginx', 'php' ];

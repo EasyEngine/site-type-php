@@ -10,7 +10,8 @@
     "autoload": {
         "psr-4": {
             "": "src/"
-        }
+        },
+        "files": [ "site-type-php.php" ]
     },
     "require-dev": {
         "wp-cli/mustangostang-spyc": "^0.6.3"

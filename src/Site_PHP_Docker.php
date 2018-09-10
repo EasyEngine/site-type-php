@@ -188,7 +188,7 @@ class Site_PHP_Docker {
 			'network'  => true,
 		];
 
-		$docker_compose_yml = mustache_render( SITE_WP_TEMPLATE_ROOT . '/docker-compose.mustache', $binding );
+		$docker_compose_yml = mustache_render( SITE_PHP_TEMPLATE_ROOT . '/docker-compose.mustache', $binding );
 
 		return $docker_compose_yml;
 	}

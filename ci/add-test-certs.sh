@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-sudo mkdir -p /opt/easyengine/nginx/certs
 
 cat <<EOF | sudo tee /opt/easyengine/nginx/certs/example2.test.crt
 -----BEGIN CERTIFICATE-----

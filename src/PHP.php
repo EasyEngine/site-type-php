@@ -258,7 +258,8 @@ class PHP extends EE_Site_Command {
 		$site_conf_dir           = $this->site_data['site_fs_path'] . '/config';
 		$site_docker_yml         = $this->site_data['site_fs_path'] . '/docker-compose.yml';
 		$site_conf_env           = $this->site_data['site_fs_path'] . '/.env';
-		$site_nginx_default_conf = $site_conf_dir . '/nginx/default.conf';
+		$site_nginx_default_conf = $site_conf_dir . '/nginx/main.conf';
+		$site_nginx_custom_conf  = $site_conf_dir . '/nginx/user/custom.conf';
 		$site_php_ini            = $site_conf_dir . '/php-fpm/php.ini';
 		$site_src_dir            = $this->site_data['site_fs_path'] . '/app/src';
 		$server_name             = $this->site_data['site_url'];
@@ -291,6 +292,7 @@ class PHP extends EE_Site_Command {
 		$site_docker            = new Site_PHP_Docker();
 		$docker_compose_content = $site_docker->generate_docker_compose_yml( $filter );
 		$default_conf_content   = $this->generate_default_conf( $this->cache_type, $server_name );
+		$custom_conf_content    = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/nginx/custom.conf.mustache', [] );
 
 		$php_ini_data = [
 			'admin_email' => $this->site_data['app_admin_email'],
@@ -302,10 +304,8 @@ class PHP extends EE_Site_Command {
 		try {
 			$this->fs->dumpFile( $site_docker_yml, $docker_compose_content );
 			$this->fs->dumpFile( $site_conf_env, $env_content );
-			$this->fs->mkdir( $site_conf_dir );
-			$this->fs->mkdir( $site_conf_dir . '/nginx' );
 			$this->fs->dumpFile( $site_nginx_default_conf, $default_conf_content );
-			$this->fs->mkdir( $site_conf_dir . '/php-fpm' );
+			$this->fs->dumpFile( $site_nginx_custom_conf, $custom_conf_content );
 			$this->fs->dumpFile( $site_php_ini, $php_ini_content );
 
 			\EE\Site\Utils\set_postfix_files( $this->site_data['site_url'], $site_conf_dir );
@@ -315,7 +315,6 @@ class PHP extends EE_Site_Command {
 				'site_src_root' => $this->site_data['site_fs_path'] . '/app/src',
 			];
 			$index_html = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/index.php.mustache', $index_data );
-			$this->fs->mkdir( $site_src_dir );
 			$this->fs->dumpFile( $site_src_dir . '/index.php', $index_html );
 
 			\EE::success( 'Configuration files copied.' );
@@ -326,7 +325,7 @@ class PHP extends EE_Site_Command {
 
 
 	/**
-	 * Function to generate default.conf from mustache templates.
+	 * Function to generate main.conf from mustache templates.
 	 *
 	 * @param boolean $cache_type Cache enabled or not.
 	 * @param string $server_name Name of server to use in virtual_host.
@@ -339,7 +338,7 @@ class PHP extends EE_Site_Command {
 		$default_conf_data['include_php_conf']   = ! $cache_type;
 		$default_conf_data['include_redis_conf'] = $cache_type;
 
-		return \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/nginx/default.conf.mustache', $default_conf_data );
+		return \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/nginx/main.conf.mustache', $default_conf_data );
 	}
 
 	private function maybe_verify_remote_db_connection() {

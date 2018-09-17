@@ -239,6 +239,7 @@ class PHP extends EE_Site_Command {
 		}
 
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
+			$info[] = [ 'DB Host', $this->site_data['db_host'] ];
 			$info[] = [ 'DB Root Password', $this->site_data['db_root_password'] ];
 			$info[] = [ 'DB Name', $this->site_data['db_name'] ];
 			$info[] = [ 'DB User', $this->site_data['db_user'] ];

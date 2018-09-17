@@ -79,7 +79,12 @@ class Site_PHP_Docker {
 				[ 'name' => 'VIRTUAL_HOST' ],
 			],
 		];
-		$php['networks']     = $network_default;
+		$php['networks']    = [
+			'net' => [
+				[ 'name' => 'site-network' ],
+				[ 'name' => 'global-network' ],
+			]
+		];
 
 		// nginx configuration.
 		$nginx['service_name'] = [ 'name' => 'nginx' ];

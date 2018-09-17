@@ -1,6 +1,7 @@
 <?php
 
 namespace EE\Site\Type;
+
 use function \EE\Utils\mustache_render;
 
 class Site_PHP_Docker {
@@ -58,13 +59,13 @@ class Site_PHP_Docker {
 			$php['depends_on'] = [ 'name' => 'db' ];
 		}
 
-		$php['restart']      = $restart_default;
-		$php['labels']       = [
+		$php['restart']     = $restart_default;
+		$php['labels']      = [
 			'label' => [
 				'name' => 'io.easyengine.site=${VIRTUAL_HOST}',
 			],
 		];
-		$php['volumes']      = [
+		$php['volumes']     = [
 			[
 				'vol' => [
 					[ 'name' => './app/src:/var/www/htdocs' ],
@@ -72,19 +73,23 @@ class Site_PHP_Docker {
 				],
 			],
 		];
-		$php['environment']  = [
+		$php['environment'] = [
 			'env' => [
 				[ 'name' => 'USER_ID' ],
 				[ 'name' => 'GROUP_ID' ],
 				[ 'name' => 'VIRTUAL_HOST' ],
 			],
 		];
-		$php['networks']    = [
-			'net' => [
-				[ 'name' => 'site-network' ],
-				[ 'name' => 'global-network' ],
-			]
-		];
+		if ( in_array( GLOBAL_DB, $filters, true ) ) {
+			$php['networks'] = [
+				'net' => [
+					[ 'name' => 'site-network' ],
+					[ 'name' => 'global-network' ],
+				],
+			];
+		} else {
+			$php['networks'] = $network_default;
+		}
 
 		// nginx configuration.
 		$nginx['service_name'] = [ 'name' => 'nginx' ];

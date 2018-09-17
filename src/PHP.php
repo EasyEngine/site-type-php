@@ -89,11 +89,11 @@ class PHP extends EE_Site_Command {
 	 *  [--with-db]
 	 * : Create database for php site.
 	 *
+	 * [--localdb]
+	 * : Create separate db container instead of using global db.
+	 *
 	 * [--dbname=<dbname>]
 	 * : Set the database name.
-	 * ---
-	 * default: php
-	 * ---
 	 *
 	 * [--dbuser=<dbuser>]
 	 * : Set the database user.
@@ -103,9 +103,6 @@ class PHP extends EE_Site_Command {
 	 *
 	 * [--dbhost=<dbhost>]
 	 * : Set the database host. Pass value only when remote dbhost is required.
-	 * ---
-	 * default: db
-	 * ---
 	 *
 	 * [--skip-check]
 	 * : If set, the database connection is not checked.
@@ -158,15 +155,27 @@ class PHP extends EE_Site_Command {
 
 		if ( ! empty( $assoc_args['with-db'] ) ) {
 			$this->site_data['app_sub_type']     = 'mysql';
-			$this->site_data['db_name']          = str_replace( [ '.', '-' ], '_', $this->site_data['site_url'] );
-			$this->site_data['db_host']          = \EE\Utils\get_flag_value( $assoc_args, 'dbhost', 'db' );
+			$this->site_data['db_name']          = \EE\Utils\get_flag_value( $assoc_args, 'dbname', str_replace( [ '.', '-' ], '_', $this->site_data['site_url'] ) );
+			$this->site_data['db_host']          = \EE\Utils\get_flag_value( $assoc_args, 'dbhost', GLOBAL_DB );
 			$this->site_data['db_port']          = '3306';
 			$this->site_data['db_user']          = \EE\Utils\get_flag_value( $assoc_args, 'dbuser', $this->create_site_db_user( $this->site_data['site_url'] ) );
 			$this->site_data['db_password']      = \EE\Utils\get_flag_value( $assoc_args, 'dbpass', \EE\Utils\random_password() );
 			$this->site_data['db_root_password'] = \EE\Utils\random_password();
 
-			// If user wants to connect to remote database.
-			if ( 'db' !== $this->site_data['db_host'] ) {
+			\EE\Site\Utils\init_checks();
+
+			if ( \EE\Utils\get_flag_value( $assoc_args, 'localdb' ) ) {
+				$this->site_data['db_host'] = 'db';
+			}
+
+			if ( GLOBAL_DB === $this->site_data['db_host'] ) {
+				\EE\Site\Utils\init_global_db();
+				$user_data                      = \EE\Site\Utils\create_user_in_db( GLOBAL_DB, $this->site_data['db_name'], $this->site_data['db_user'], $this->site_data['db_password'] );
+				$this->site_data['db_name']     = $user_data['db_name'];
+				$this->site_data['db_user']     = $user_data['db_user'];
+				$this->site_data['db_password'] = $user_data['db_pass'];
+			} // If user wants to connect to remote database.
+			elseif ( 'db' !== $this->site_data['db_host'] ) {
 				if ( ! isset( $assoc_args['dbuser'] ) || ! isset( $assoc_args['dbpass'] ) ) {
 					\EE::error( '`--dbuser` and `--dbpass` are required for remote db host.' );
 				}
@@ -351,7 +360,7 @@ class PHP extends EE_Site_Command {
 		// The since we're inside the container and we want to access host machine,
 		// we would need to replace localhost with default gateway.
 		if ( '127.0.0.1' === $this->site_data['db_host'] || 'localhost' === $this->site_data['db_host'] ) {
-			$launch = \EE::exec( sprintf( "docker network inspect %s --format='{{ (index .IPAM.Config 0).Gateway }}'", $this->site_data['site_url'] ), false, true );
+			$launch = \EE::launch( sprintf( "docker network inspect %s --format='{{ (index .IPAM.Config 0).Gateway }}'", $this->site_data['site_url'] ) );
 
 			if ( ! $launch->return_code ) {
 				$this->site_data['db_host'] = trim( $launch->stdout, "\n" );
@@ -359,9 +368,15 @@ class PHP extends EE_Site_Command {
 				throw new \Exception( 'There was a problem inspecting network. Please check the logs' );
 			}
 		}
-		\EE::log( 'Verifying connection to remote database' );
+		if ( GLOBAL_DB !== $this->site_data['db_host'] ) {
+			\EE::log( 'Verifying connection to remote database' );
+		}
+		$img_versions = \EE\Utils\get_image_versions();
+		if ( GLOBAL_DB === $this->site_data['db_host'] ) {
+			$network = ( GLOBAL_DB === $this->site_data['db_host'] ) ? "--network='" . GLOBAL_NETWORK . "'" : '';
+		}
 
-		if ( ! \EE::exec( sprintf( "docker run -it --rm --network='%s' mysql sh -c \"mysql --host='%s' --port='%s' --user='%s' --password='%s' --execute='EXIT'\"", $this->site_data['site_url'], $this->site_data['db_host'], $this->site_data['db_port'], $this->site_data['db_user'], $this->site_data['db_password'] ) ) ) {
+		if ( ! \EE::exec( sprintf( "docker run -it --rm %s easyengine/mariadb:%s sh -c \"mysql --host='%s' --port='%s' --user='%s' --password='%s' --execute='EXIT'\"", $network, $img_versions['easyengine/mariadb'], $this->site_data['db_host'], $this->site_data['db_port'], $this->site_data['db_user'], $this->site_data['db_password'] ) ) ) {
 			throw new \Exception( 'Unable to connect to remote db' );
 		}
 
@@ -543,7 +558,12 @@ class PHP extends EE_Site_Command {
 		\EE\Utils\delem_log( 'site cleanup start' );
 		\EE::warning( $e->getMessage() );
 		\EE::warning( 'Initiating clean-up.' );
-		$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'] );
+		$db_data = ( empty( $this->site_data['db_host'] ) || 'db' === $this->site_data['db_host'] ) ? [] : [
+			'db_host' => $this->site_data['db_host'],
+			'db_user' => $this->site_data['db_user'],
+			'db_name' => $this->site_data['db_name'],
+		];
+		$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'], $db_data );
 		\EE\Utils\delem_log( 'site cleanup end' );
 		exit;
 	}
@@ -554,7 +574,12 @@ class PHP extends EE_Site_Command {
 	protected function rollback() {
 		\EE::warning( 'Exiting gracefully after rolling back. This may take some time.' );
 		if ( $this->level > 0 ) {
-			$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'] );
+			$db_data = ( empty( $this->site_data['db_host'] ) || 'db' === $this->site_data['db_host'] ) ? [] : [
+				'db_host' => $this->site_data['db_host'],
+				'db_user' => $this->site_data['db_user'],
+				'db_name' => $this->site_data['db_name'],
+			];
+			$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'], $db_data );
 		}
 		\EE::success( 'Rollback complete. Exiting now.' );
 		exit;

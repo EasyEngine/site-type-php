@@ -353,7 +353,7 @@ class PHP extends EE_Site_Command {
 
 	private function maybe_verify_remote_db_connection() {
 
-		if ( 'db' === $this->site_data['db_host'] ) {
+		if ( in_array( $this->site_data['db_host'], [ 'db', GLOBAL_DB ] ) ) {
 			return;
 		}
 
@@ -369,9 +369,8 @@ class PHP extends EE_Site_Command {
 				throw new \Exception( 'There was a problem inspecting network. Please check the logs' );
 			}
 		}
-		if ( GLOBAL_DB !== $this->site_data['db_host'] ) {
-			\EE::log( 'Verifying connection to remote database' );
-		}
+
+		\EE::log( 'Verifying connection to remote database' );
 		$img_versions = \EE\Utils\get_image_versions();
 
 		$network = ( GLOBAL_DB === $this->site_data['db_host'] ) ? "--network='" . GLOBAL_NETWORK . "'" : '';

@@ -292,7 +292,6 @@ class PHP extends EE_Site_Command {
 		$site_docker            = new Site_PHP_Docker();
 		$docker_compose_content = $site_docker->generate_docker_compose_yml( $filter );
 		$default_conf_content   = $this->generate_default_conf( $this->cache_type, $server_name );
-		$custom_conf_content    = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/nginx/custom.conf.mustache', [] );
 
 		$php_ini_data = [
 			'admin_email' => $this->site_data['app_admin_email'],
@@ -305,7 +304,7 @@ class PHP extends EE_Site_Command {
 			$this->fs->dumpFile( $site_docker_yml, $docker_compose_content );
 			$this->fs->dumpFile( $site_conf_env, $env_content );
 			$this->fs->dumpFile( $site_nginx_default_conf, $default_conf_content );
-			$this->fs->dumpFile( $site_nginx_custom_conf, $custom_conf_content );
+			$this->fs->copy( SITE_PHP_TEMPLATE_ROOT . '/config/nginx/custom.conf.mustache', $site_nginx_custom_conf );
 			$this->fs->dumpFile( $site_php_ini, $php_ini_content );
 
 			\EE\Site\Utils\set_postfix_files( $this->site_data['site_url'], $site_conf_dir );

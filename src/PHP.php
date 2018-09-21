@@ -261,7 +261,7 @@ class PHP extends EE_Site_Command {
 		$site_php_ini            = $site_conf_dir . '/php-fpm/php.ini';
 		$site_src_dir            = $this->site_data['site_fs_path'] . '/app/src';
 		$server_name             = $this->site_data['site_url'];
-		$custom_conf_dest        = $site_conf_dir . '/nginx/user/custom.conf';
+		$custom_conf_dest        = $site_conf_dir . '/nginx/custom/custom.conf';
 		$custom_conf_source      = SITE_PHP_TEMPLATE_ROOT . '/config/nginx/custom.conf.mustache';
 		$process_user            = posix_getpwuid( posix_geteuid() );
 

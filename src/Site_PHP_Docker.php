@@ -1,7 +1,7 @@
 <?php
 
 namespace EE\Site\Type;
-use function \EE\Utils\mustache_render;
+use function EE\Utils\mustache_render;
 
 class Site_PHP_Docker {
 
@@ -99,9 +99,9 @@ class Site_PHP_Docker {
 		$nginx['volumes']     = [
 			'vol' => [
 				[ 'name' => './app/src:/var/www/htdocs' ],
-				[ 'name' => './config/nginx/default.conf:/etc/nginx/conf.d/default.conf' ],
+				[ 'name' => './config/nginx/main.conf:/etc/nginx/conf.d/default.conf' ],
+				[ 'name' => './config/nginx/custom:/etc/nginx/custom' ],
 				[ 'name' => './logs/nginx:/var/log/nginx' ],
-				[ 'name' => './config/nginx/common:/usr/local/openresty/nginx/conf/common' ],
 			],
 		];
 		$nginx['labels']      = [

@@ -83,7 +83,7 @@ class Site_PHP_Docker {
 			$php['networks'] = [
 				'net' => [
 					[ 'name' => 'site-network' ],
-					[ 'name' => 'global-network' ],
+					[ 'name' => 'global-backend-network' ],
 				],
 			];
 		} else {
@@ -128,7 +128,7 @@ class Site_PHP_Docker {
 						],
 					],
 				],
-				[ 'name' => 'global-network' ],
+				[ 'name' => 'global-frontend-network' ],
 			]
 		];
 
@@ -152,7 +152,7 @@ class Site_PHP_Docker {
 		$mailhog['networks']     = [
 			'net' => [
 				[ 'name' => 'site-network' ],
-				[ 'name' => 'global-network' ],
+				[ 'name' => 'global-frontend-network' ],
 			]
 		];
 

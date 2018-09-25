@@ -434,11 +434,14 @@ class PHP extends EE_Site_Command {
 			\EE\Site\Utils\reload_global_nginx_proxy();
 
 			if ( $this->site_data['site_ssl'] ) {
+				$allow_le = $this->check_www_subdomain();
 				$wildcard = $this->site_data['site_ssl_wildcard'];
 				\EE::debug( 'Wildcard in site php command: ' . $this->site_data['site_ssl_wildcard'] );
-				$this->init_ssl( $this->site_data['site_url'], $this->site_data['site_fs_path'], $this->site_data['site_ssl'], $wildcard );
+				$this->init_ssl( $this->site_data['site_url'], $this->site_data['site_fs_path'], $this->site_data['site_ssl'], $wildcard, $allow_le );
 
-				\EE\Site\Utils\add_site_redirects( $this->site_data['site_url'], true, 'inherit' === $this->site_data['site_ssl'] );
+				if ( true === $allow_le ) {
+					\EE\Site\Utils\add_site_redirects( $this->site_data['site_url'], true, 'inherit' === $this->site_data['site_ssl'] );
+				}
 
 				$this->dump_docker_compose_yml( [ 'nohttps' => false ] );
 				\EE\Site\Utils\start_site_containers( $this->site_data['site_fs_path'], ['nginx'] );

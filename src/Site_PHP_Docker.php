@@ -105,6 +105,9 @@ class Site_PHP_Docker {
 				[ 'name' => 'HSTS=off' ],
 			],
 		];
+		if ( ! empty( $filters['nohttps'] ) ) {
+			$nginx['environment']['env'][] = [ 'name' => 'HTTPS_METHOD=nohttps' ];
+		}
 		$nginx['volumes']     = [
 			'vol' => [
 				[ 'name' => './app/src:/var/www/htdocs' ],

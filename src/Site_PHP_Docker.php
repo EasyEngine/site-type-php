@@ -134,7 +134,9 @@ class Site_PHP_Docker {
 				[ 'name' => 'global-frontend-network' ],
 			]
 		];
-
+		if ( in_array( GLOBAL_REDIS, $filters, true ) ) {
+			$nginx['networks']['net'][] = [ 'name' => 'global-backend-network' ];
+		}
 		// mailhog configuration.
 		$mailhog['service_name'] = [ 'name' => 'mailhog' ];
 		$mailhog['image']        = [ 'name' => 'easyengine/mailhog:' . $img_versions['easyengine/mailhog'] ];

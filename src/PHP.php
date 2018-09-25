@@ -89,11 +89,11 @@ class PHP extends EE_Site_Command {
 	 *  [--with-db]
 	 * : Create database for php site.
 	 *
+	 * [--local-db]
+	 * : Create separate db container instead of using global db.
+	 *
 	 * [--dbname=<dbname>]
 	 * : Set the database name.
-	 * ---
-	 * default: php
-	 * ---
 	 *
 	 * [--dbuser=<dbuser>]
 	 * : Set the database user.
@@ -103,9 +103,6 @@ class PHP extends EE_Site_Command {
 	 *
 	 * [--dbhost=<dbhost>]
 	 * : Set the database host. Pass value only when remote dbhost is required.
-	 * ---
-	 * default: db
-	 * ---
 	 *
 	 * [--skip-check]
 	 * : If set, the database connection is not checked.
@@ -143,7 +140,6 @@ class PHP extends EE_Site_Command {
 	public function create( $args, $assoc_args ) {
 
 		\EE\Utils\delem_log( 'site create start' );
-		\EE::warning( 'This is a beta version. Please don\'t use it in production.' );
 		$this->logger->debug( 'args:', $args );
 		$this->logger->debug( 'assoc_args:', empty( $assoc_args ) ? array( 'NULL' ) : $assoc_args );
 		$this->site_data['site_url'] = strtolower( \EE\Utils\remove_trailing_slash( $args[0] ) );
@@ -159,15 +155,28 @@ class PHP extends EE_Site_Command {
 
 		if ( ! empty( $assoc_args['with-db'] ) ) {
 			$this->site_data['app_sub_type']     = 'mysql';
-			$this->site_data['db_name']          = str_replace( [ '.', '-' ], '_', $this->site_data['site_url'] );
-			$this->site_data['db_host']          = \EE\Utils\get_flag_value( $assoc_args, 'dbhost', 'db' );
+			$this->site_data['db_name']          = \EE\Utils\get_flag_value( $assoc_args, 'dbname', str_replace( [ '.', '-' ], '_', $this->site_data['site_url'] ) );
+			$this->site_data['db_host']          = \EE\Utils\get_flag_value( $assoc_args, 'dbhost', GLOBAL_DB );
 			$this->site_data['db_port']          = '3306';
 			$this->site_data['db_user']          = \EE\Utils\get_flag_value( $assoc_args, 'dbuser', $this->create_site_db_user( $this->site_data['site_url'] ) );
 			$this->site_data['db_password']      = \EE\Utils\get_flag_value( $assoc_args, 'dbpass', \EE\Utils\random_password() );
-			$this->site_data['db_root_password'] = \EE\Utils\random_password();
 
-			// If user wants to connect to remote database.
-			if ( 'db' !== $this->site_data['db_host'] ) {
+			\EE\Site\Utils\init_checks();
+
+			if ( \EE\Utils\get_flag_value( $assoc_args, 'local-db' ) ) {
+				$this->site_data['db_host'] = 'db';
+			}
+
+			$this->site_data['db_root_password'] = ( 'db' === $this->site_data['db_host'] ) ? \EE\Utils\random_password() : '';
+
+			if ( GLOBAL_DB === $this->site_data['db_host'] ) {
+				\EE\Site\Utils\init_global_db();
+				$user_data                      = \EE\Site\Utils\create_user_in_db( GLOBAL_DB, $this->site_data['db_name'], $this->site_data['db_user'], $this->site_data['db_password'] );
+				$this->site_data['db_name']     = $user_data['db_name'];
+				$this->site_data['db_user']     = $user_data['db_user'];
+				$this->site_data['db_password'] = $user_data['db_pass'];
+			} elseif ( 'db' !== $this->site_data['db_host'] ) {
+				// If user wants to connect to remote database.
 				if ( ! isset( $assoc_args['dbuser'] ) || ! isset( $assoc_args['dbpass'] ) ) {
 					\EE::error( '`--dbuser` and `--dbpass` are required for remote db host.' );
 				}
@@ -231,7 +240,10 @@ class PHP extends EE_Site_Command {
 		}
 
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
-			$info[] = [ 'DB Root Password', $this->site_data['db_root_password'] ];
+			$info[] = [ 'DB Host', $this->site_data['db_host'] ];
+			if ( ! empty( $this->site_data['db_root_password'] ) ) {
+				$info[] = [ 'DB Root Password', $this->site_data['db_root_password'] ];
+			}
 			$info[] = [ 'DB Name', $this->site_data['db_name'] ];
 			$info[] = [ 'DB User', $this->site_data['db_user'] ];
 			$info[] = [ 'DB Password', $this->site_data['db_password'] ];
@@ -258,10 +270,12 @@ class PHP extends EE_Site_Command {
 		$site_conf_dir           = $this->site_data['site_fs_path'] . '/config';
 		$site_docker_yml         = $this->site_data['site_fs_path'] . '/docker-compose.yml';
 		$site_conf_env           = $this->site_data['site_fs_path'] . '/.env';
-		$site_nginx_default_conf = $site_conf_dir . '/nginx/default.conf';
+		$site_nginx_default_conf = $site_conf_dir . '/nginx/main.conf';
 		$site_php_ini            = $site_conf_dir . '/php-fpm/php.ini';
 		$site_src_dir            = $this->site_data['site_fs_path'] . '/app/src';
 		$server_name             = $this->site_data['site_url'];
+		$custom_conf_dest        = $site_conf_dir . '/nginx/custom/user.conf';
+		$custom_conf_source      = SITE_PHP_TEMPLATE_ROOT . '/config/nginx/user.conf.mustache';
 		$process_user            = posix_getpwuid( posix_geteuid() );
 
 		\EE::log( 'Creating PHP site ' . $this->site_data['site_url'] );
@@ -302,10 +316,8 @@ class PHP extends EE_Site_Command {
 		try {
 			$this->fs->dumpFile( $site_docker_yml, $docker_compose_content );
 			$this->fs->dumpFile( $site_conf_env, $env_content );
-			$this->fs->mkdir( $site_conf_dir );
-			$this->fs->mkdir( $site_conf_dir . '/nginx' );
 			$this->fs->dumpFile( $site_nginx_default_conf, $default_conf_content );
-			$this->fs->mkdir( $site_conf_dir . '/php-fpm' );
+			$this->fs->copy( $custom_conf_source, $custom_conf_dest );
 			$this->fs->dumpFile( $site_php_ini, $php_ini_content );
 
 			\EE\Site\Utils\set_postfix_files( $this->site_data['site_url'], $site_conf_dir );
@@ -315,7 +327,6 @@ class PHP extends EE_Site_Command {
 				'site_src_root' => $this->site_data['site_fs_path'] . '/app/src',
 			];
 			$index_html = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/index.php.mustache', $index_data );
-			$this->fs->mkdir( $site_src_dir );
 			$this->fs->dumpFile( $site_src_dir . '/index.php', $index_html );
 
 			\EE::success( 'Configuration files copied.' );
@@ -326,7 +337,7 @@ class PHP extends EE_Site_Command {
 
 
 	/**
-	 * Function to generate default.conf from mustache templates.
+	 * Function to generate main.conf from mustache templates.
 	 *
 	 * @param boolean $cache_type Cache enabled or not.
 	 * @param string $server_name Name of server to use in virtual_host.
@@ -339,12 +350,12 @@ class PHP extends EE_Site_Command {
 		$default_conf_data['include_php_conf']   = ! $cache_type;
 		$default_conf_data['include_redis_conf'] = $cache_type;
 
-		return \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/nginx/default.conf.mustache', $default_conf_data );
+		return \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/nginx/main.conf.mustache', $default_conf_data );
 	}
 
 	private function maybe_verify_remote_db_connection() {
 
-		if ( 'db' === $this->site_data['db_host'] ) {
+		if ( in_array( $this->site_data['db_host'], [ 'db', GLOBAL_DB ] ) ) {
 			return;
 		}
 
@@ -352,7 +363,7 @@ class PHP extends EE_Site_Command {
 		// The since we're inside the container and we want to access host machine,
 		// we would need to replace localhost with default gateway.
 		if ( '127.0.0.1' === $this->site_data['db_host'] || 'localhost' === $this->site_data['db_host'] ) {
-			$launch = \EE::exec( sprintf( "docker network inspect %s --format='{{ (index .IPAM.Config 0).Gateway }}'", $this->site_data['site_url'] ), false, true );
+			$launch = \EE::launch( sprintf( "docker network inspect %s --format='{{ (index .IPAM.Config 0).Gateway }}'", $this->site_data['site_url'] ) );
 
 			if ( ! $launch->return_code ) {
 				$this->site_data['db_host'] = trim( $launch->stdout, "\n" );
@@ -360,9 +371,13 @@ class PHP extends EE_Site_Command {
 				throw new \Exception( 'There was a problem inspecting network. Please check the logs' );
 			}
 		}
-		\EE::log( 'Verifying connection to remote database' );
 
-		if ( ! \EE::exec( sprintf( "docker run -it --rm --network='%s' mysql sh -c \"mysql --host='%s' --port='%s' --user='%s' --password='%s' --execute='EXIT'\"", $this->site_data['site_url'], $this->site_data['db_host'], $this->site_data['db_port'], $this->site_data['db_user'], $this->site_data['db_password'] ) ) ) {
+		\EE::log( 'Verifying connection to remote database' );
+		$img_versions = \EE\Utils\get_image_versions();
+
+		$network = ( GLOBAL_DB === $this->site_data['db_host'] ) ? "--network='" . GLOBAL_NETWORK . "'" : '';
+
+		if ( ! \EE::exec( sprintf( "docker run -it --rm %s easyengine/mariadb:%s sh -c \"mysql --host='%s' --port='%s' --user='%s' --password='%s' --execute='EXIT'\"", $network, $img_versions['easyengine/mariadb'], $this->site_data['db_host'], $this->site_data['db_port'], $this->site_data['db_user'], $this->site_data['db_password'] ) ) ) {
 			throw new \Exception( 'Unable to connect to remote db' );
 		}
 
@@ -544,7 +559,12 @@ class PHP extends EE_Site_Command {
 		\EE\Utils\delem_log( 'site cleanup start' );
 		\EE::warning( $e->getMessage() );
 		\EE::warning( 'Initiating clean-up.' );
-		$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'] );
+		$db_data = ( empty( $this->site_data['db_host'] ) || 'db' === $this->site_data['db_host'] ) ? [] : [
+			'db_host' => $this->site_data['db_host'],
+			'db_user' => $this->site_data['db_user'],
+			'db_name' => $this->site_data['db_name'],
+		];
+		$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'], $db_data );
 		\EE\Utils\delem_log( 'site cleanup end' );
 		exit;
 	}
@@ -555,7 +575,12 @@ class PHP extends EE_Site_Command {
 	protected function rollback() {
 		\EE::warning( 'Exiting gracefully after rolling back. This may take some time.' );
 		if ( $this->level > 0 ) {
-			$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'] );
+			$db_data = ( empty( $this->site_data['db_host'] ) || 'db' === $this->site_data['db_host'] ) ? [] : [
+				'db_host' => $this->site_data['db_host'],
+				'db_user' => $this->site_data['db_user'],
+				'db_name' => $this->site_data['db_name'],
+			];
+			$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'], $db_data );
 		}
 		\EE::success( 'Rollback complete. Exiting now.' );
 		exit;

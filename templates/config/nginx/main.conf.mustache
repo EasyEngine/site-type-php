@@ -21,6 +21,10 @@ server {
 	if ($query_string != "") {
 		set $skip 1;
 	}
+	# Don't cache URL containing the following segments
+	if ($request_uri ~* "(/ee-admin/") {
+		set $skip 1;
+	}
 	# Use cached or actual file if they exists, Otherwise pass request to WordPress
 	location / {
 		try_files $uri $uri/ /index.php?$args;
@@ -29,14 +33,14 @@ server {
 	location /redis-fetch {
 		internal  ;
 		set  $redis_key $args;
-		redis_pass  redis:6379;
+		redis_pass  {{cache_host}}:6379;
 	}
 	location /redis-store {
 		internal  ;
 		set_unescape_uri $key $arg_key ;
 		redis2_query  set $key $echo_request_body;
 		redis2_query expire $key 14400;
-		redis2_pass  redis:6379;
+		redis2_pass  {{cache_host}}:6379;
 	}
 
 	location ~ \.php$ {

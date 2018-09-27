@@ -103,6 +103,9 @@ class PHP extends EE_Site_Command {
 	 *
 	 * [--dbhost=<dbhost>]
 	 * : Set the database host. Pass value only when remote dbhost is required.
+	 * 
+	 * [--with-local-redis]
+	 * : Enable cache with local redis container.
 	 *
 	 * [--skip-check]
 	 * : If set, the database connection is not checked.
@@ -153,6 +156,12 @@ class PHP extends EE_Site_Command {
 		$this->site_data['site_ssl_wildcard'] = \EE\Utils\get_flag_value( $assoc_args, 'wildcard' );
 		$this->site_data['app_sub_type']      = 'php';
 
+		$local_cache                          = \EE\Utils\get_flag_value( $assoc_args, 'with-local-redis' );
+		$this->site_data['cache_host']        = '';
+		if ( $this->cache_type ) {
+			$this->site_data['cache_host'] = $local_cache ? 'redis' : 'global-redis';
+		}
+
 		if ( ! empty( $assoc_args['with-db'] ) ) {
 			$this->site_data['app_sub_type']     = 'mysql';
 			$this->site_data['db_name']          = \EE\Utils\get_flag_value( $assoc_args, 'dbname', str_replace( [ '.', '-' ], '_', $this->site_data['site_url'] ) );
@@ -161,7 +170,11 @@ class PHP extends EE_Site_Command {
 			$this->site_data['db_user']          = \EE\Utils\get_flag_value( $assoc_args, 'dbuser', $this->create_site_db_user( $this->site_data['site_url'] ) );
 			$this->site_data['db_password']      = \EE\Utils\get_flag_value( $assoc_args, 'dbpass', \EE\Utils\random_password() );
 
-			\EE\Site\Utils\init_checks();
+			\EE\Service\Utils\nginx_proxy_check();
+
+			if ( $this->cache_type && ! $local_cache ) {
+				\EE\Service\Utils\init_global_container( GLOBAL_REDIS );
+			}
 
 			if ( \EE\Utils\get_flag_value( $assoc_args, 'local-db' ) ) {
 				$this->site_data['db_host'] = 'db';
@@ -170,7 +183,7 @@ class PHP extends EE_Site_Command {
 			$this->site_data['db_root_password'] = ( 'db' === $this->site_data['db_host'] ) ? \EE\Utils\random_password() : '';
 
 			if ( GLOBAL_DB === $this->site_data['db_host'] ) {
-				\EE\Site\Utils\init_global_db();
+				\EE\Service\Utils\init_global_container( GLOBAL_DB );
 				$user_data                      = \EE\Site\Utils\create_user_in_db( GLOBAL_DB, $this->site_data['db_name'], $this->site_data['db_user'], $this->site_data['db_password'] );
 				$this->site_data['db_name']     = $user_data['db_name'];
 				$this->site_data['db_user']     = $user_data['db_user'];
@@ -338,7 +351,7 @@ class PHP extends EE_Site_Command {
 		$site_docker_yml = $this->site_data['site_fs_path'] . '/docker-compose.yml';
 
 		$filter   = [];
-		$filter[] = $this->cache_type ? 'redis' : 'none';
+		$filter[] = $this->site_data['cache_host'];
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$filter[] = $this->site_data['db_host'];
 		}
@@ -366,6 +379,7 @@ class PHP extends EE_Site_Command {
 		$default_conf_data['server_name']        = $server_name;
 		$default_conf_data['include_php_conf']   = ! $cache_type;
 		$default_conf_data['include_redis_conf'] = $cache_type;
+		$default_conf_data['cache_host']         = $this->site_data['cache_host'];
 
 		return \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/nginx/main.conf.mustache', $default_conf_data );
 	}

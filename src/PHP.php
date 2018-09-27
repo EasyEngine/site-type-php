@@ -448,7 +448,7 @@ class PHP extends EE_Site_Command {
 			\EE\Site\Utils\reload_global_nginx_proxy();
 
 			if ( $this->site_data['site_ssl'] ) {
-				$allow_le = $this->check_www_subdomain();
+				$allow_le = $this->check_www_subdomain( $this->site_data['site_url'], $this->site_data['site_fs_path'] );
 				$wildcard = $this->site_data['site_ssl_wildcard'];
 				\EE::debug( 'Wildcard in site php command: ' . $this->site_data['site_ssl_wildcard'] );
 				$this->init_ssl( $this->site_data['site_url'], $this->site_data['site_fs_path'], $this->site_data['site_ssl'], $wildcard, $allow_le );

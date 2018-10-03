@@ -22,11 +22,6 @@ use function EE\Site\Utils\get_site_info;
 class PHP extends EE_Site_Command {
 
 	/**
-	 * @var array $site_data Associative array containing essential site related information.
-	 */
-	private $site_data;
-
-	/**
 	 * @var string $cache_type Type of caching being used.
 	 */
 	private $cache_type;
@@ -103,7 +98,7 @@ class PHP extends EE_Site_Command {
 	 *
 	 * [--dbhost=<dbhost>]
 	 * : Set the database host. Pass value only when remote dbhost is required.
-	 * 
+	 *
 	 * [--with-local-redis]
 	 * : Enable cache with local redis container.
 	 *
@@ -346,7 +341,7 @@ class PHP extends EE_Site_Command {
 	 *
 	 * @param array $additional_filters Filters to alter docker-compose file.
 	 */
-	private function dump_docker_compose_yml( $additional_filters = [] ) {
+	protected function dump_docker_compose_yml( $additional_filters = [] ) {
 
 		$site_docker_yml = $this->site_data['site_fs_path'] . '/docker-compose.yml';
 
@@ -444,24 +439,7 @@ class PHP extends EE_Site_Command {
 				\EE\Site\Utils\site_status_check( $this->site_data['site_url'] );
 			}
 
-			\EE\Site\Utils\add_site_redirects( $this->site_data['site_url'], false, 'inherit' === $this->site_data['site_ssl'] );
-			\EE\Site\Utils\reload_global_nginx_proxy();
-
-			if ( $this->site_data['site_ssl'] ) {
-				$allow_le = $this->check_www_subdomain( $this->site_data['site_url'], $this->site_data['site_fs_path'] );
-				$wildcard = $this->site_data['site_ssl_wildcard'];
-				\EE::debug( 'Wildcard in site php command: ' . $this->site_data['site_ssl_wildcard'] );
-				$this->init_ssl( $this->site_data['site_url'], $this->site_data['site_fs_path'], $this->site_data['site_ssl'], $wildcard, $allow_le );
-
-				if ( true === $allow_le ) {
-					\EE\Site\Utils\add_site_redirects( $this->site_data['site_url'], true, 'inherit' === $this->site_data['site_ssl'] );
-				}
-
-				$this->dump_docker_compose_yml( [ 'nohttps' => false ] );
-				\EE\Site\Utils\start_site_containers( $this->site_data['site_fs_path'], ['nginx'] );
-
-				\EE\Site\Utils\reload_global_nginx_proxy();
-			}
+			$this->www_ssl_wrapper( [ 'nginx' ] );
 		} catch ( \Exception $e ) {
 			$this->catch_clean( $e );
 		}

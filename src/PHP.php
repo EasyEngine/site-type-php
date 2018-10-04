@@ -162,6 +162,8 @@ class PHP extends EE_Site_Command {
 			$this->site_data['cache_host'] = $local_cache ? 'redis' : 'global-redis';
 		}
 
+		\EE\Service\Utils\nginx_proxy_check();
+
 		if ( ! empty( $assoc_args['with-db'] ) ) {
 			$this->site_data['app_sub_type']     = 'mysql';
 			$this->site_data['db_name']          = \EE\Utils\get_flag_value( $assoc_args, 'dbname', str_replace( [ '.', '-' ], '_', $this->site_data['site_url'] ) );
@@ -169,8 +171,6 @@ class PHP extends EE_Site_Command {
 			$this->site_data['db_port']          = '3306';
 			$this->site_data['db_user']          = \EE\Utils\get_flag_value( $assoc_args, 'dbuser', $this->create_site_db_user( $this->site_data['site_url'] ) );
 			$this->site_data['db_password']      = \EE\Utils\get_flag_value( $assoc_args, 'dbpass', \EE\Utils\random_password() );
-
-			\EE\Service\Utils\nginx_proxy_check();
 
 			if ( $this->cache_type && ! $local_cache ) {
 				\EE\Service\Utils\init_global_container( GLOBAL_REDIS );
@@ -201,8 +201,6 @@ class PHP extends EE_Site_Command {
 		$this->site_data['app_admin_email'] = \EE\Utils\get_flag_value( $assoc_args, 'admin_email', strtolower( 'admin@' . $this->site_data['site_url'] ) );
 		$this->skip_status_check            = \EE\Utils\get_flag_value( $assoc_args, 'skip-status-check' );
 		$this->force                        = \EE\Utils\get_flag_value( $assoc_args, 'force' );
-
-		\EE\Site\Utils\init_checks();
 
 		\EE::log( 'Configuring project.' );
 

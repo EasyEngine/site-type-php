@@ -463,6 +463,7 @@ class PHP extends EE_Site_Command {
 			'cache_nginx_browser'  => (int) $this->cache_type,
 			'cache_nginx_fullpage' => (int) $this->cache_type,
 			'cache_mysql_query'    => (int) $this->cache_type,
+			'cache_host'           => $this->site_data['cache_host'],
 			'site_fs_path'         => $this->site_data['site_fs_path'],
 			'site_ssl'             => $ssl,
 			'site_ssl_wildcard'    => $this->site_data['site_ssl_wildcard'] ? 1 : 0,

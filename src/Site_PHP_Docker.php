@@ -44,7 +44,7 @@ class Site_PHP_Docker {
 		$db['volumes']      = [
 			[
 				'vol' => [
-					'name' => './app/db:/var/lib/mysql',
+					'name' => './services/db:/var/lib/mysql',
 				],
 			],
 		];
@@ -74,7 +74,7 @@ class Site_PHP_Docker {
 		$php['volumes']     = [
 			[
 				'vol' => [
-					[ 'name' => './app/src:/var/www/htdocs' ],
+					[ 'name' => './app:/var/www' ],
 					[ 'name' => './config/php-fpm/php.ini:/usr/local/etc/php/php.ini' ],
 				],
 			],
@@ -124,7 +124,7 @@ class Site_PHP_Docker {
 		}
 		$nginx['volumes']     = [
 			'vol' => [
-				[ 'name' => './app/src:/var/www/htdocs' ],
+				[ 'name' => './app:/var/www' ],
 				[ 'name' => './config/nginx/main.conf:/etc/nginx/conf.d/default.conf' ],
 				[ 'name' => './config/nginx/custom:/etc/nginx/custom' ],
 				[ 'name' => './logs/nginx:/var/log/nginx' ],
@@ -189,7 +189,7 @@ class Site_PHP_Docker {
 			'vol' => [
 				[ 'name' => '/dev/log:/dev/log' ],
 				[ 'name' => './config/postfix/ssl:/etc/ssl/postfix' ],
-				[ 'name' => './app/postfix/spool:/var/spool/postfix' ],
+				[ 'name' => './services/postfix/spool:/var/spool/postfix' ],
 			],
 		];
 		$postfix['networks']     = $network_default;

@@ -21,8 +21,15 @@ class Site_PHP_Docker {
 		$restart_default = [ 'name' => 'always' ];
 		$network_default = [
 			'net' => [
-				[ 'name' => 'site-network' ]
-			]
+				[
+					'name'    => 'site-network',
+					'aliases' => [
+						'alias' => [
+							'name' => '${VIRTUAL_HOST}_php',
+						],
+					],
+				],
+			],
 		];
 
 		// db configuration.
@@ -82,7 +89,14 @@ class Site_PHP_Docker {
 		if ( in_array( GLOBAL_DB, $filters, true ) ) {
 			$php['networks'] = [
 				'net' => [
-					[ 'name' => 'site-network' ],
+					[
+						'name' => 'site-network',
+						'aliases' => [
+							'alias' => [
+								'name' => '${VIRTUAL_HOST}_php',
+							],
+						],
+					],
 					[ 'name' => 'global-backend-network' ],
 				],
 			];

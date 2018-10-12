@@ -377,6 +377,7 @@ class PHP extends EE_Site_Command {
 	private function generate_default_conf( $cache_type, $server_name ) {
 
 		$default_conf_data['server_name']        = $server_name;
+		$default_conf_data['site_url']           = $this->site_data['site_url'];
 		$default_conf_data['include_php_conf']   = ! $cache_type;
 		$default_conf_data['include_redis_conf'] = $cache_type;
 		$default_conf_data['cache_host']         = $this->site_data['cache_host'];

@@ -284,7 +284,7 @@ class PHP extends EE_Site_Command {
 		$site_conf_env           = $this->site_data['site_fs_path'] . '/.env';
 		$site_nginx_default_conf = $site_conf_dir . '/nginx/main.conf';
 		$site_php_ini            = $site_conf_dir . '/php-fpm/php.ini';
-		$site_src_dir            = $this->site_data['site_fs_path'] . '/app/src';
+		$site_src_dir            = $this->site_data['site_fs_path'] . '/app/htdocs';
 		$server_name             = $this->site_data['site_url'];
 		$custom_conf_dest        = $site_conf_dir . '/nginx/custom/user.conf';
 		$custom_conf_source      = SITE_PHP_TEMPLATE_ROOT . '/config/nginx/user.conf.mustache';
@@ -330,7 +330,7 @@ class PHP extends EE_Site_Command {
 
 			$index_data = [
 				'version'       => 'v' . EE_VERSION,
-				'site_src_root' => $this->site_data['site_fs_path'] . '/app/src',
+				'site_src_root' => $this->site_data['site_fs_path'] . '/app/htdocs',
 			];
 			$index_html = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/index.php.mustache', $index_data );
 			$this->fs->dumpFile( $site_src_dir . '/index.php', $index_html );

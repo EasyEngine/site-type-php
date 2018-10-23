@@ -86,22 +86,21 @@ class Site_PHP_Docker {
 				[ 'name' => 'VIRTUAL_HOST' ],
 			],
 		];
-		if ( in_array( GLOBAL_DB, $filters, true ) ) {
-			$php['networks'] = [
-				'net' => [
-					[
-						'name' => 'site-network',
-						'aliases' => [
-							'alias' => [
-								'name' => '${VIRTUAL_HOST}_php',
-							],
+		$php['networks'] = [
+			'net' => [
+				[
+					'name'    => 'site-network',
+					'aliases' => [
+						'alias' => [
+							'name' => '${VIRTUAL_HOST}_php',
 						],
 					],
-					[ 'name' => 'global-backend-network' ],
 				],
-			];
-		} else {
-			$php['networks'] = $network_default;
+			],
+		];
+
+		if ( in_array( GLOBAL_DB, $filters, true ) ) {
+			$php['networks']['net'][] = [ 'name' => 'global-backend-network' ];
 		}
 
 		// nginx configuration.
@@ -218,9 +217,24 @@ class Site_PHP_Docker {
 			$base[] = $redis;
 		}
 
+		$network = [
+			'networks_labels' => [
+				'label' => [
+					[ 'name' => 'org.label-schema.vendor=EasyEngine' ],
+					[ 'name' => 'io.easyengine.site=${VIRTUAL_HOST}' ],
+				],
+			],
+		];
+
+		if ( in_array( 'db', $filters, true ) ) {
+			$base[] = $db;
+		} else {
+			$network['enable_backend_network'] = true;
+		}
+
 		$binding = [
-			'services' => $base,
-			'network'  => true,
+			'services'        => $base,
+			'network'         => $network,
 		];
 
 		$docker_compose_yml = mustache_render( SITE_PHP_TEMPLATE_ROOT . '/docker-compose.mustache', $binding );

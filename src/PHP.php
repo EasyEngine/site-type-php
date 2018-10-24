@@ -309,7 +309,7 @@ class PHP extends EE_Site_Command {
 			];
 		}
 
-		\EE\Site\Utils\create_volumes( $this->site_data['site_url'], $volumes );
+		$this->docker->create_volumes( $this->site_data['site_url'], $volumes );
 
 		\EE::log( 'Creating PHP site ' . $this->site_data['site_url'] );
 		\EE::log( 'Copying configuration files.' );
@@ -373,9 +373,9 @@ class PHP extends EE_Site_Command {
 
 		$site_docker_yml = $this->site_data['site_fs_path'] . '/docker-compose.yml';
 
-		$filter   = [];
-		$filter[] = $this->site_data['cache_host'];
-		$filter['site_prefix'] = \EE\Site\Utils\get_site_prefix( $this->site_data['site_url'] );
+		$filter                = [];
+		$filter[]              = $this->site_data['cache_host'];
+		$filter['site_prefix'] = $this->docker->get_docker_style_prefix( $this->site_data['site_url'] );
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$filter[] = $this->site_data['db_host'];
 		}

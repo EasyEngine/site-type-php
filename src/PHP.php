@@ -291,6 +291,26 @@ class PHP extends EE_Site_Command {
 		$custom_conf_source      = SITE_PHP_TEMPLATE_ROOT . '/config/nginx/user.conf.mustache';
 		$process_user            = posix_getpwuid( posix_geteuid() );
 
+		$volumes = [
+			[ 'name' => 'htdocs', 'path_to_symlink' => $this->site_data['site_fs_path'] . '/app' ],
+			[ 'name' => 'config_nginx', 'path_to_symlink' => dirname( $site_nginx_default_conf ) ],
+			[ 'name' => 'config_php', 'path_to_symlink' => dirname( $site_php_ini ) ],
+			[ 'name' => 'log_nginx', 'path_to_symlink' => $this->site_data['site_fs_path'] . '/logs/nginx' ],
+			[
+				'name'            => 'data_postfix',
+				'path_to_symlink' => $this->site_data['site_fs_path'] . '/services/postfix/spool'
+			],
+		];
+
+		if ( ! empty($this->site_data['db_host']) && 'db' === $this->site_data['db_host'] ) {
+			$volumes[] = [
+				'name'            => 'data_db',
+				'path_to_symlink' => $this->site_data['site_fs_path'] . '/services/db'
+			];
+		}
+
+		$this->docker->create_volumes( $this->site_data['site_url'], $volumes );
+
 		\EE::log( 'Creating PHP site ' . $this->site_data['site_url'] );
 		\EE::log( 'Copying configuration files.' );
 
@@ -323,12 +343,14 @@ class PHP extends EE_Site_Command {
 		try {
 			$this->dump_docker_compose_yml( [ 'nohttps' => true ] );
 			$this->fs->dumpFile( $site_conf_env, $env_content );
+			\EE\Site\Utils\set_postfix_files( $this->site_data['site_url'], $site_conf_dir );
+			\EE\Site\Utils\start_site_containers( $this->site_data['site_fs_path'], [ 'nginx', 'postfix' ] );
 			$this->fs->dumpFile( $site_nginx_default_conf, $default_conf_content );
 			$this->fs->copy( $custom_conf_source, $custom_conf_dest );
+			$this->fs->remove( $this->site_data['site_fs_path'] . '/app/html' );
+			$this->fs->remove( $this->site_data['site_fs_path'] . '/config/nginx/conf.d' );
 			$this->fs->dumpFile( $site_php_ini, $php_ini_content );
-
-			\EE\Site\Utils\set_postfix_files( $this->site_data['site_url'], $site_conf_dir );
-
+			\EE::exec( 'docker-compose restart nginx php' );
 			$index_data = [
 				'version'       => 'v' . EE_VERSION,
 				'site_src_root' => $this->site_data['site_fs_path'] . '/app/htdocs',
@@ -351,8 +373,9 @@ class PHP extends EE_Site_Command {
 
 		$site_docker_yml = $this->site_data['site_fs_path'] . '/docker-compose.yml';
 
-		$filter   = [];
-		$filter[] = $this->site_data['cache_host'];
+		$filter                = [];
+		$filter[]              = $this->site_data['cache_host'];
+		$filter['site_prefix'] = $this->docker->get_docker_style_prefix( $this->site_data['site_url'] );
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$filter[] = $this->site_data['db_host'];
 		}
@@ -538,7 +561,6 @@ class PHP extends EE_Site_Command {
 			$this->level = 3;
 			$this->configure_site_files();
 
-			\EE\Site\Utils\start_site_containers( $this->site_data['site_fs_path'], $containers );
 			\EE\Site\Utils\configure_postfix( $this->site_data['site_url'], $this->site_data['site_fs_path'] );
 
 			\EE\Site\Utils\create_etc_hosts_entry( $this->site_data['site_url'] );

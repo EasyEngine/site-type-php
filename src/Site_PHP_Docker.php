@@ -134,7 +134,7 @@ class Site_PHP_Docker {
 		$nginx['networks'] = [
 			'net' => [
 				[ 'name' => 'global-frontend-network' ],
-			]
+			],
 		];
 		if ( $filters['is_ssl'] ) {
 			$nginx['networks']['net'][] = [

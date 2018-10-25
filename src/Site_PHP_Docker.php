@@ -1,6 +1,7 @@
 <?php
 
 namespace EE\Site\Type;
+
 use function EE\Utils\mustache_render;
 
 class Site_PHP_Docker {
@@ -83,7 +84,7 @@ class Site_PHP_Docker {
 				[ 'name' => 'VIRTUAL_HOST' ],
 			],
 		];
-		$php['networks'] = [
+		$php['networks']    = [
 			'net' => [
 				[
 					'name'    => 'site-network',
@@ -132,17 +133,23 @@ class Site_PHP_Docker {
 		];
 		$nginx['networks'] = [
 			'net' => [
-				[
-					'name'    => 'site-network',
-					'aliases' => [
-						'alias' => [
-							'name' => '${VIRTUAL_HOST}',
-						],
+				[ 'name' => 'global-frontend-network' ],
+			]
+		];
+		if ( $filters['is_ssl'] ) {
+			$nginx['networks']['net'][] = [
+				'name'    => 'site-network',
+				'aliases' => [
+					'alias' => [
+						'name' => '${VIRTUAL_HOST}',
 					],
 				],
-				[ 'name' => 'global-frontend-network' ],
-			],
-		];
+			];
+		} else {
+			$nginx['networks']['net'][] = [
+				'name' => 'site-network',
+			];
+		}
 		if ( in_array( GLOBAL_REDIS, $filters, true ) ) {
 			$nginx['networks']['net'][] = [ 'name' => 'global-backend-network' ];
 		}

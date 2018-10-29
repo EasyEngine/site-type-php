@@ -283,7 +283,7 @@ class PHP extends EE_Site_Command {
 
 		$site_conf_dir           = $this->site_data['site_fs_path'] . '/config';
 		$site_conf_env           = $this->site_data['site_fs_path'] . '/.env';
-		$site_nginx_default_conf = $site_conf_dir . '/nginx/main.conf';
+		$site_nginx_default_conf = $site_conf_dir . '/nginx/conf.d/main.conf';
 		$site_php_ini            = $site_conf_dir . '/php-fpm/php.ini';
 		$site_src_dir            = $this->site_data['site_fs_path'] . '/app/htdocs';
 		$server_name             = $this->site_data['site_url'];
@@ -293,7 +293,7 @@ class PHP extends EE_Site_Command {
 
 		$volumes = [
 			[ 'name' => 'htdocs', 'path_to_symlink' => $this->site_data['site_fs_path'] . '/app' ],
-			[ 'name' => 'config_nginx', 'path_to_symlink' => dirname( $site_nginx_default_conf ) ],
+			[ 'name' => 'config_nginx', 'path_to_symlink' => dirname( $custom_conf_dest ) ],
 			[ 'name' => 'config_php', 'path_to_symlink' => dirname( $site_php_ini ) ],
 			[ 'name' => 'log_nginx', 'path_to_symlink' => $this->site_data['site_fs_path'] . '/logs/nginx' ],
 			[

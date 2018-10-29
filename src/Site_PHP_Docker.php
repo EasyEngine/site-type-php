@@ -1,6 +1,7 @@
 <?php
 
 namespace EE\Site\Type;
+
 use function EE\Utils\mustache_render;
 
 class Site_PHP_Docker {
@@ -72,7 +73,7 @@ class Site_PHP_Docker {
 			[
 				'vol' => [
 					[ 'name' => 'htdocs:/var/www' ],
-					[ 'name' => 'config_php:/usr/local/etc/php' ],
+					[ 'name' => 'config_php:/usr/local/etc' ],
 				],
 			],
 		];
@@ -83,7 +84,7 @@ class Site_PHP_Docker {
 				[ 'name' => 'VIRTUAL_HOST' ],
 			],
 		];
-		$php['networks'] = [
+		$php['networks']    = [
 			'net' => [
 				[
 					'name'    => 'site-network',
@@ -121,7 +122,7 @@ class Site_PHP_Docker {
 		$nginx['volumes']  = [
 			'vol' => [
 				[ 'name' => 'htdocs:/var/www' ],
-				[ 'name' => 'config_nginx:/etc/nginx' ],
+				[ 'name' => 'config_nginx:/usr/local/openresty/nginx/conf' ],
 				[ 'name' => 'log_nginx:/var/log/nginx' ],
 			],
 		];
@@ -132,17 +133,23 @@ class Site_PHP_Docker {
 		];
 		$nginx['networks'] = [
 			'net' => [
-				[
-					'name'    => 'site-network',
-					'aliases' => [
-						'alias' => [
-							'name' => '${VIRTUAL_HOST}',
-						],
-					],
-				],
 				[ 'name' => 'global-frontend-network' ],
 			],
 		];
+		if ( $filters['is_ssl'] ) {
+			$nginx['networks']['net'][] = [
+				'name'    => 'site-network',
+				'aliases' => [
+					'alias' => [
+						'name' => '${VIRTUAL_HOST}',
+					],
+				],
+			];
+		} else {
+			$nginx['networks']['net'][] = [
+				'name' => 'site-network',
+			];
+		}
 		if ( in_array( GLOBAL_REDIS, $filters, true ) ) {
 			$nginx['networks']['net'][] = [ 'name' => 'global-backend-network' ];
 		}

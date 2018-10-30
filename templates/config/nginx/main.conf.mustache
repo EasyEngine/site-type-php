@@ -1,4 +1,4 @@
-# Add your custom config in custom.conf
+# Add your custom config in custom/user.conf
 # ALL CHANGES IN THIS FILE WILL BE LOST AFTER EasyEngine Update
 
 server {
@@ -21,6 +21,10 @@ server {
 	if ($query_string != "") {
 		set $skip 1;
 	}
+	# Don't cache URL containing the following segments
+	if ($request_uri ~* "(/ee-admin/") {
+		set $skip 1;
+	}
 	# Use cached or actual file if they exists, Otherwise pass request to WordPress
 	location / {
 		try_files $uri $uri/ /index.php?$args;
@@ -29,19 +33,22 @@ server {
 	location /redis-fetch {
 		internal  ;
 		set  $redis_key $args;
-		redis_pass  redis:6379;
+		redis_pass  {{cache_host}}:6379;
 	}
 	location /redis-store {
 		internal  ;
 		set_unescape_uri $key $arg_key ;
 		redis2_query  set $key $echo_request_body;
 		redis2_query expire $key 14400;
-		redis2_pass  redis:6379;
+		redis2_pass  {{cache_host}}:6379;
 	}
 
 	location ~ \.php$ {
 		#  add_header Cache-Control "max-age=0, no-cache, no-store, must-revalidate";
-		set $key "nginx-cache:$scheme$request_method$host$request_uri";
+		set $key "{{site_url}}:http$request_method$host$request_uri";
+		if ($HTTP_X_FORWARDED_PROTO = "https") {
+			set $key "{{site_url}}:https$request_method$host$request_uri";
+		}
 		try_files $uri =404;
 
 		srcache_fetch_skip $skip;
@@ -58,7 +65,7 @@ server {
 		more_set_headers 'X-SRCache-Store-Status $srcache_store_status';
 
 		include fastcgi_params;
-		fastcgi_pass php:9000;
+		fastcgi_pass {{site_url}}_php:9000;
 	}
 
 	{{/include_redis_conf}}
@@ -72,7 +79,7 @@ server {
 		try_files $uri =404;
 		fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
 		include fastcgi_params;
-		fastcgi_pass php:9000;
+		fastcgi_pass {{site_url}}_php:9000;
 	}
 	{{/include_php_conf}}
 
@@ -113,7 +120,7 @@ server {
 		access_log off;
 		log_not_found off;
 	}
-	
+
 	# Deny backup extensions & log files
 	location ~* ^.+\.(bak|log|old|orig|original|php#|php~|php_bak|save|swo|swp|sql)$ {
 		deny all;
@@ -131,7 +138,7 @@ server {
 	}
 	location ~ ^/(status|ping) {
 		include fastcgi_params;
-		fastcgi_pass php:9000;
+		fastcgi_pass {{site_url}}_php:9000;
 	}
 	location ~*  \.(css|js)$ {
 		expires 1d;
@@ -141,4 +148,6 @@ server {
 	{{! /locations.conf }}
 
 	client_max_body_size 100m;
+
+	include /usr/local/openresty/nginx/conf/custom/*.conf;
 }

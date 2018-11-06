@@ -301,6 +301,10 @@ class PHP extends EE_Site_Command {
 				'name'            => 'data_postfix',
 				'path_to_symlink' => $this->site_data['site_fs_path'] . '/services/postfix/spool'
 			],
+			[
+				'name'            => 'config_postfix',
+				'path_to_symlink' => $this->site_data['site_fs_path'] . '/config/postfix'
+			],
 		];
 
 		if ( ! empty($this->site_data['db_host']) && 'db' === $this->site_data['db_host'] ) {

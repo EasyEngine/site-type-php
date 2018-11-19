@@ -164,6 +164,7 @@ class PHP extends EE_Site_Command {
 
 		\EE\Service\Utils\nginx_proxy_check();
 
+		$this->site_data['db_host'] = '';
 		if ( ! empty( $assoc_args['with-db'] ) ) {
 			$this->site_data['app_sub_type']     = 'mysql';
 			$this->site_data['db_name']          = \EE\Utils\get_flag_value( $assoc_args, 'dbname', str_replace( [ '.', '-' ], '_', $this->site_data['site_url'] ) );
@@ -336,7 +337,7 @@ class PHP extends EE_Site_Command {
 			$this->fs->remove( $this->site_data['site_fs_path'] . '/app/html' );
 			$this->fs->dumpFile( $site_php_ini, $php_ini_content );
 			if ( IS_DARWIN ) {
-				if ( 'db' === $this->site_data['db_host'] ) {
+				if ( ! empty( $this->site_data['db_host'] ) && 'db' === $this->site_data['db_host'] ) {
 					$db_conf_file = $this->site_data['site_fs_path'] . '/services/mariadb/conf/my.cnf';
 					$this->fs->copy( SITE_PHP_TEMPLATE_ROOT . '/my.cnf.mustache', $db_conf_file );
 				}
@@ -448,7 +449,7 @@ class PHP extends EE_Site_Command {
 			],
 		];
 
-		if ( ! empty( $assoc_args['with-db'] ) && 'db' === $this->site_data['db_host'] ) {
+		if ( ! empty( $this->site_data['db_host'] ) && 'db' === $this->site_data['db_host'] ) {
 			$volumes['db'] = [
 				[
 					'name'            => 'db_data',
@@ -666,7 +667,7 @@ class PHP extends EE_Site_Command {
 
 			$containers = [ 'nginx', 'postfix' ];
 
-			if ( ! empty( $assoc_args['with-db'] ) && 'db' === $this->site_data['db_host'] ) {
+			if ( ! empty( $this->site_data['db_host'] ) && 'db' === $this->site_data['db_host'] ) {
 				$this->maybe_verify_remote_db_connection();
 				$containers[] = 'db';
 			}

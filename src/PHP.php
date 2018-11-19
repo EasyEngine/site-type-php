@@ -289,7 +289,7 @@ class PHP extends EE_Site_Command {
 		$site_conf_dir           = $this->site_data['site_fs_path'] . '/config';
 		$site_conf_env           = $this->site_data['site_fs_path'] . '/.env';
 		$site_nginx_default_conf = $site_conf_dir . '/nginx/conf.d/main.conf';
-		$site_php_ini            = $site_conf_dir . '/php/php/php.ini';
+		$site_php_ini            = $site_conf_dir . '/php/php/conf.d/custom.ini';
 		$site_src_dir            = $this->site_data['site_fs_path'] . '/app/htdocs';
 		$server_name             = $this->site_data['site_url'];
 		$custom_conf_dest        = $site_conf_dir . '/nginx/custom/user.conf';
@@ -368,7 +368,7 @@ class PHP extends EE_Site_Command {
 
 		$site_conf_dir           = $this->site_data['site_fs_path'] . '/config';
 		$site_nginx_default_conf = $site_conf_dir . '/nginx/conf.d/main.conf';
-		$site_php_ini            = $site_conf_dir . '/php/php/php.ini';
+		$site_php_ini            = $site_conf_dir . '/php/php/conf.d/custom.ini';
 
 		$volumes = [
 			'nginx'   => [
@@ -404,14 +404,14 @@ class PHP extends EE_Site_Command {
 				],
 				[
 					'name'            => 'config_php',
-					'path_to_symlink' => dirname( dirname( $site_php_ini ) ),
+					'path_to_symlink' => $site_conf_dir . '/php',
 					'container_path'  => '/usr/local/etc',
 					'skip_darwin'     => true,
 				],
 				[
 					'name'            => 'config_php',
 					'path_to_symlink' => $site_php_ini,
-					'container_path'  => '/usr/local/etc/php/php/php.ini',
+					'container_path'  => '/usr/local/etc/php/php/conf.d/custom.ini',
 					'skip_linux'      => true,
 					'skip_volume'     => true,
 				],

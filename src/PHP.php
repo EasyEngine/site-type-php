@@ -158,6 +158,10 @@ class PHP extends EE_Site_Command {
 			$this->site_data['cache_host'] = $local_cache ? 'redis' : 'global-redis';
 		}
 
+		if ( $this->cache_type && ! $local_cache ) {
+			\EE\Service\Utils\init_global_container( GLOBAL_REDIS );
+		}
+
 		\EE\Service\Utils\nginx_proxy_check();
 
 		if ( ! empty( $assoc_args['with-db'] ) ) {

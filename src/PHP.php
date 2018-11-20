@@ -257,7 +257,7 @@ class PHP extends EE_Site_Command {
 		if ( ! empty( $this->site_data['admin_tools'] ) ) {
 			$info[] = [ 'Access admin-tools', $prefix . $this->site_data['site_url'] . '/ee-admin/' ];
 		}
-
+		$info[] = [ 'Site Root', $this->site_data['site_fs_path'] ];
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$info[] = [ 'DB Host', $this->site_data['db_host'] ];
 			if ( ! empty( $this->site_data['db_root_password'] ) ) {

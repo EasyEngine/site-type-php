@@ -33,7 +33,7 @@ server {
 		set $skip 1;
 	}
 	# Don't cache URL containing the following segments
-	if ($request_uri ~* "(/ee-admin/") {
+	if ($request_uri ~* "(/ee-admin/)") {
 		set $skip 1;
 	}
 	# Use cached or actual file if they exists, Otherwise pass request to WordPress

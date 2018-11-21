@@ -93,9 +93,9 @@ class PHP extends EE_Site_Command {
 	 * ---
 	 * default: latest
 	 * options:
-	 * 	- 5.6
-	 *  - 7.2
-	 * 	- latest
+	 *	- 5.6
+	 *	- 7.2
+	 *	- latest
 	 * ---
 	 *
 	 * [--dbname=<dbname>]

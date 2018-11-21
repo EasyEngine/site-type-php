@@ -166,12 +166,19 @@ class PHP extends EE_Site_Command {
 			$this->site_data['cache_host'] = $local_cache ? 'redis' : 'global-redis';
 		}
 
-		if ( 5 === (int) floor( $this->site_data['php_version'] ) ) {
-			$this->site_data['php_version'] = 5.6;
-		} elseif ( 7 === (int) floor( $this->site_data['php_version'] ) || 'latest' === $this->site_data['php_version'] ) {
-			$this->site_data['php_version'] = 7.2;
-		} else {
-			EE::error( 'Unsupported PHP version: ' . $this->site_data['php_version'] );
+		$supported_php_versions = [ 5.6, 7.2, 'latest' ];
+		if ( ! in_array( $this->site_data['php_version'], $supported_php_versions ) ) {
+			$old_version = $this->site_data['php_version'];
+			$yet         = '';
+			if ( 5 === (int) floor( $this->site_data['php_version'] ) ) {
+				$this->site_data['php_version'] = 5.6;
+			} elseif ( 7 === (int) floor( $this->site_data['php_version'] ) || 'latest' === $this->site_data['php_version'] ) {
+				$this->site_data['php_version'] = 7.2;
+				$yet = ' yet';
+			} else {
+				EE::error( 'Unsupported PHP version: ' . $this->site_data['php_version'] );
+			}
+			\EE::confirm( sprintf( 'EEv4 does not support PHP %s%s. Continue with PHP %s?', $old_version, $yet, $this->site_data['php_version'] ) );
 		}
 
 		if ( $this->cache_type && ! $local_cache ) {

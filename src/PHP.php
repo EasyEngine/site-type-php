@@ -516,7 +516,7 @@ class PHP extends EE_Site_Command {
 		$filter[]              = $this->site_data['cache_host'];
 		$filter['site_prefix'] = $this->docker->get_docker_style_prefix( $this->site_data['site_url'] );
 		$filter['is_ssl']      = $this->site_data['site_ssl'];
-		$filter['php_version'] = $this->site_data['php_version'];
+		$filter['php_version'] = ( string ) $this->site_data['php_version'];
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$filter[] = $this->site_data['db_host'];
 		}

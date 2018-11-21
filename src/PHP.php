@@ -92,6 +92,10 @@ class PHP extends EE_Site_Command {
 	 * : PHP version for site. Currently only supports PHP 5.6 and latest.
 	 * ---
 	 * default: latest
+	 * options:
+	 * 	- 5.6
+	 *  - 7.2
+	 * 	- latest
 	 * ---
 	 *
 	 * [--dbname=<dbname>]
@@ -169,16 +173,16 @@ class PHP extends EE_Site_Command {
 		$supported_php_versions = [ 5.6, 7.2, 'latest' ];
 		if ( ! in_array( $this->site_data['php_version'], $supported_php_versions ) ) {
 			$old_version = $this->site_data['php_version'];
-			$yet         = '';
-			if ( 5 === (int) floor( $this->site_data['php_version'] ) ) {
+			$floor       = (int) floor( $this->site_data['php_version'] );
+			if ( 5 === $floor ) {
 				$this->site_data['php_version'] = 5.6;
-			} elseif ( 7 === (int) floor( $this->site_data['php_version'] ) || 'latest' === $this->site_data['php_version'] ) {
+			} elseif ( 7 === $floor ) {
 				$this->site_data['php_version'] = 7.2;
-				$yet = ' yet';
+				$old_version .= ' yet';
 			} else {
 				EE::error( 'Unsupported PHP version: ' . $this->site_data['php_version'] );
 			}
-			\EE::confirm( sprintf( 'EEv4 does not support PHP %s%s. Continue with PHP %s?', $old_version, $yet, $this->site_data['php_version'] ) );
+			\EE::confirm( sprintf( 'EEv4 does not support PHP %s. Continue with PHP %s?', $old_version, $this->site_data['php_version'] ) );
 		}
 
 		if ( $this->cache_type && ! $local_cache ) {

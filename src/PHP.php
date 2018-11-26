@@ -835,7 +835,7 @@ class PHP extends EE_Site_Command {
 	 */
 	public function reload( $args, $assoc_args, $whitelisted_containers = [], $reload_commands = [] ) {
 		$whitelisted_containers = [ 'nginx', 'php' ];
-		$reload_commands['php'] = 'kill -USR2 1';
+		$reload_commands['php'] = "php bash -c 'kill -USR2 1'";
 		parent::reload( $args, $assoc_args, $whitelisted_containers, $reload_commands );
 	}
 

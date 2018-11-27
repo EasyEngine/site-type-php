@@ -14,7 +14,9 @@ services:
     {{/hostname}}
     {{#depends_on}}
     depends_on:
+    {{#dependency}}
       - {{name}}
+	  {{/dependency}}
     {{/depends_on}}
     {{#restart}}
     restart: {{name}}
@@ -31,7 +33,7 @@ services:
     {{#volumes}}
     volumes:
     {{#vol}}
-      - "{{name}}"
+      - "{{.}}"
     {{/vol}}
     {{/volumes}}
     {{#environment}}
@@ -40,6 +42,8 @@ services:
       - {{name}}
     {{/env}}
     {{/environment}}
+    external_links:
+      - ee-global-nginx-proxy:${VIRTUAL_HOST}
     {{#networks}}
     networks:
     {{#net}}
@@ -55,11 +59,31 @@ services:
 
 {{/services}}
 
+{{#created_volumes}}
+volumes:
+  {{#external_vols}}
+  {{ext_vol_name}}:
+    external:
+      name: {{prefix}}_{{ext_vol_name}}
+  {{/external_vols}}
+{{/created_volumes}}
+
 {{#network}}
 networks:
   site-network:
     name: ${VIRTUAL_HOST}
-  global-network:
+    {{#networks_labels}}
+    labels:
+    {{#label}}
+     - "{{name}}"
+    {{/label}}
+    {{/networks_labels}}
+  global-frontend-network:
     external:
-      name: ee-global-network
+      name: ee-global-frontend-network
+  {{#enable_backend_network}}
+  global-backend-network:
+    external:
+      name: ee-global-backend-network
+  {{/enable_backend_network}}
 {{/network}}

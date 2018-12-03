@@ -55,6 +55,9 @@ Feature: Site Command
     Disabling site php.test.
     Success: Site php.test disabled.
     """
+    And Request on 'php.test' should contain following headers:
+        | header                                       |
+        | HTTP/1.1 503 Service Temporarily Unavailable |
 
   Scenario: Check site enable sub command is present
     When I run 'bin/ee site enable'
@@ -91,6 +94,9 @@ Feature: Site Command
     Starting site's services.
     Success: Post enable configurations complete.
     """
+    And Request on 'php.test' should contain following headers:
+        | header           |
+        | HTTP/1.1 200 OK  |
 
   Scenario: Check site info sub command is present
     When I run 'bin/ee site info'

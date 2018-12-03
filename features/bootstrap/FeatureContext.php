@@ -14,7 +14,7 @@ include_once( EE_ROOT . '/php/utils.php' );
 
 define( 'EE', true );
 define( 'EE_VERSION', trim( file_get_contents( EE_ROOT . '/VERSION' ) ) );
-define( 'EE_CONF_ROOT', '/opt/easyengine' );
+define( 'EE_ROOT_DIR', '/opt/easyengine' );
 
 require_once EE_ROOT . '/php/bootstrap.php';
 
@@ -50,7 +50,7 @@ use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Gherkin\Node\PyStringNode,
 	Behat\Gherkin\Node\TableNode;
 
-define( 'EE_SITE_ROOT', getenv( 'HOME' ) . '/ee-sites/' );
+define( 'EE_SITE_ROOT', EE_ROOT_DIR . '/sites' );
 
 class FeatureContext implements Context
 {
@@ -65,8 +65,6 @@ class FeatureContext implements Context
 	{
 		$this->commands = [];
 		$this->ee_path = getcwd();
-		$config_contents = \Mustangostang\Spyc::YAMLDump( [ 'le-mail' => 'abc@example.com' ] );
-		file_put_contents( EE_CONF_ROOT . '/config.yml', $config_contents );
 	}
 
 	/**
@@ -103,7 +101,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @When I run :command
+	 * @When /I run '(.*)'|"(.*)"/
 	 */
 	public function iRun( $command )
 	{
@@ -170,7 +168,7 @@ class FeatureContext implements Context
 	 */
 	public function theWebrootShouldBeRemoved( $site )
 	{
-		if ( file_exists( EE_SITE_ROOT . $site ) ) {
+		if ( file_exists( EE_SITE_ROOT .  '/' . $site ) ) {
 			throw new Exception( "Webroot has not been removed!" );
 		}
 	}
@@ -200,7 +198,7 @@ class FeatureContext implements Context
 	 */
 	public function theSiteShouldHaveWebroot( $site )
 	{
-		if ( ! file_exists( EE_SITE_ROOT . $site ) ) {
+		if ( ! file_exists( EE_SITE_ROOT . '/' . $site ) ) {
 			throw new Exception( "Webroot has not been created!" );
 		}
 	}
@@ -210,7 +208,7 @@ class FeatureContext implements Context
 	 */
 	public function theSiteShouldHaveIndexFile( $site )
 	{
-		if ( ! file_exists( EE_SITE_ROOT . $site . "/app/src/index.php" ) ) {
+		if ( ! file_exists( EE_SITE_ROOT . '/' . $site . "/app/htdocs/index.php" ) ) {
 			throw new Exception( "PHP site data not found!" );
 		}
 	}

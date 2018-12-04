@@ -26,6 +26,15 @@ class Site_PHP_Docker {
 			],
 		];
 
+		$network = [
+			'networks_labels' => [
+				'label' => [
+					[ 'name' => 'org.label-schema.vendor=EasyEngine' ],
+					[ 'name' => 'io.easyengine.site=${VIRTUAL_HOST}' ],
+				],
+			],
+		];
+
 		if ( in_array( 'db', $filters, true ) ) {
 			// db configuration.
 			$db['service_name'] = [ 'name' => 'db' ];
@@ -96,8 +105,10 @@ class Site_PHP_Docker {
 			],
 		];
 
-		if ( in_array( GLOBAL_DB, $filters, true ) ) {
-			$php['networks']['net'][] = [ 'name' => 'global-backend-network' ];
+		$global_network = array_intersect( [ GLOBAL_DB, GLOBAL_REDIS ], $filters );
+		if ( ! empty ( $global_network ) ) {
+			$php['networks']['net'][]          = [ 'name' => 'global-backend-network' ];
+			$network['enable_backend_network'] = true;
 		}
 
 		// nginx configuration.
@@ -133,7 +144,8 @@ class Site_PHP_Docker {
 			],
 		];
 		if ( in_array( GLOBAL_REDIS, $filters, true ) ) {
-			$nginx['networks']['net'][] = [ 'name' => 'global-backend-network' ];
+			$nginx['networks']['net'][]        = [ 'name' => 'global-backend-network' ];
+			$network['enable_backend_network'] = true;
 		}
 		// mailhog configuration.
 		$mailhog['service_name'] = [ 'name' => 'mailhog' ];
@@ -203,15 +215,6 @@ class Site_PHP_Docker {
 				[ 'prefix' => $filters['site_prefix'], 'ext_vol_name' => 'data_postfix' ],
 				[ 'prefix' => $filters['site_prefix'], 'ext_vol_name' => 'ssl_postfix' ],
 				[ 'prefix' => $filters['site_prefix'], 'ext_vol_name' => 'config_postfix' ],
-			],
-		];
-
-		$network = [
-			'networks_labels' => [
-				'label' => [
-					[ 'name' => 'org.label-schema.vendor=EasyEngine' ],
-					[ 'name' => 'io.easyengine.site=${VIRTUAL_HOST}' ],
-				],
 			],
 		];
 

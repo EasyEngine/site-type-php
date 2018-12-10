@@ -136,6 +136,9 @@ class PHP extends EE_Site_Command {
 	 *     # Create php site with wildcard ssl
 	 *     $ ee site create example.com --type=php --ssl=le --wildcard
 	 *
+	 *     # Create php site with self signed certificate
+	 *     $ ee site create example.com --type=php --ssl=self
+	 *
 	 *     # Create php site with remote database
 	 *     $ ee site create example.com --type=php --with-db --dbhost=localhost --dbuser=username --dbpass=password
 	 *

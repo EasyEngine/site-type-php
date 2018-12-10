@@ -136,6 +136,9 @@ class PHP extends EE_Site_Command {
 	 *     # Create php site with wildcard ssl
 	 *     $ ee site create example.com --type=php --ssl=le --wildcard
 	 *
+	 *     # Create php site with self signed certificate
+	 *     $ ee site create example.com --type=php --ssl=self
+	 *
 	 *     # Create php site with remote database
 	 *     $ ee site create example.com --type=php --with-db --dbhost=localhost --dbuser=username --dbpass=password
 	 *
@@ -153,7 +156,7 @@ class PHP extends EE_Site_Command {
 		}
 
 		$this->cache_type                     = \EE\Utils\get_flag_value( $assoc_args, 'cache' );
-		$this->site_data['site_ssl']          = \EE\Utils\get_flag_value( $assoc_args, 'ssl' );
+		$this->site_data['site_ssl']          = \EE\Utils\get_flag_value( $assoc_args, 'ssl', '' );
 		$this->site_data['site_ssl_wildcard'] = \EE\Utils\get_flag_value( $assoc_args, 'wildcard' );
 		$this->site_data['php_version']       = \EE\Utils\get_flag_value( $assoc_args, 'php', 'latest' );
 		$this->site_data['app_sub_type']      = 'php';
@@ -721,10 +724,6 @@ class PHP extends EE_Site_Command {
 	private function create_site_db_entry() {
 		$ssl = null;
 
-		if ( $this->site_data['site_ssl'] ) {
-			$ssl = 'letsencrypt';
-		}
-
 		$data = [
 			'site_url'             => $this->site_data['site_url'],
 			'site_type'            => $this->site_data['site_type'],
@@ -734,7 +733,7 @@ class PHP extends EE_Site_Command {
 			'cache_mysql_query'    => (int) $this->cache_type,
 			'cache_host'           => $this->site_data['cache_host'],
 			'site_fs_path'         => $this->site_data['site_fs_path'],
-			'site_ssl'             => $ssl,
+			'site_ssl'             => $this->site_data['site_ssl'],
 			'site_ssl_wildcard'    => $this->site_data['site_ssl_wildcard'] ? 1 : 0,
 			'php_version'          => $this->site_data['php_version'],
 			'created_on'           => date( 'Y-m-d H:i:s', time() ),

@@ -259,7 +259,10 @@ class FeatureContext implements Context
 			'php.test',
 			'example.test',
 			'www.example1.test',
-			'labels.test'
+			'labels.test',
+			'php-local-db.test',
+			'php-local-redis.test',
+			'php-local-db-redis.test',
 		];
 
 		$result          = EE::launch( 'sudo bin/ee site list --format=text', false,  true );
@@ -318,6 +321,88 @@ class FeatureContext implements Context
 			if (strpos($headers, $row['header']) === false) {
 				throw new Exception("Unable to find " . $row['header'] . "\nActual output is : " . $headers);
 			}
+		}
+	}
+
+	/**
+	 * @Then Check global redis cache for :site
+	 */
+	public function checkGlobalRedisCacheOfSite($site)
+	{
+		exec("docker exec -it ee-global-redis redis-cli set 'easyengine' 'rocks'");
+		$output = exec("docker exec -it ee-global-redis redis-cli get 'easyengine'");
+		if ( '"rocks"' !== $output ) {
+			throw new Exception("Global redis not working for $site site. Getting '$output' instead of 'rock'");
+		}
+		exec("docker exec -it ee-global-redis redis-cli del 'easyengine'");
+	}
+
+	/**
+	 * @Then Check local redis cache for :site
+	 */
+	public function checkLocalRedisCacheOfSite($site)
+	{
+		$site_root_folder = EE_SITE_ROOT . '/' . $site;
+		exec("cd $site_root_folder && docker-compose exec redis redis-cli set 'easyengine' 'rocks'");
+		$output = exec("cd $site_root_folder && docker-compose exec redis redis-cli get 'easyengine'");
+		if ( '"rocks"' !== $output ) {
+			throw new Exception("Local redis not working for $site site. Getting '$output' instead of 'rock'.");
+		}
+		exec("cd $site_root_folder && docker-compose exec redis redis-cli del 'easyengine'");
+	}
+
+	/**
+	 * @Then Check local mysql database connection for :site
+	 */
+	public function checkLocalDbConnection(string $site)
+	{
+		$this->checkMysqlConnection( $site, 'db' );
+	}
+
+	/**
+	 * @Then Check global mysql database connection for :site
+	 */
+	public function checkGlobalDbConnection(string $site)
+	{
+		$this->checkMysqlConnection( $site, 'global-db' );
+	}
+
+	/**
+	 * Helper function to check global and local database connection.
+	 *
+	 * @param string $site
+	 * @param string $db_type
+	 *
+	 * @return void
+	 */
+	public function checkMysqlConnection(string $site, string $db_type)
+	{
+		$db         = new SQLite3( EE_ROOT_DIR . '/db/ee.sqlite' );
+		$query      = "SELECT `db_user`, `db_password` FROM sites WHERE site_url='".$site."' LIMIT 1;";
+		$exec_query = $db->query( $query );
+		$site_info  = $exec_query->fetchArray( SQLITE3_ASSOC );
+
+		if ( empty( $site_info['db_user'] ) || empty( $site_info['db_password'] )  ) {
+			throw new exception( 'Database credentials not found.' );
+		}
+
+		$mysql_query = sprintf(
+			'mysql -h"%s" -u"%s" -p"%s" -e"exit"',
+			$db_type,
+			$site_info['db_user'],
+			$site_info['db_password']
+		);
+
+		$cmd_command = sprintf(
+			'ee shell %s --command="%s"',
+			$site,
+			$mysql_query
+		);
+
+		$db_connection = exec( $cmd_command );
+
+		if ( ! empty( $db_connection ) ) {
+			throw new Exception( $db_connection  );
 		}
 	}
 

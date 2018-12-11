@@ -135,6 +135,39 @@ Feature: Site Command
     usage: ee site delete <site-name> [--yes]
     """
 
+  Scenario: Create PHP site with local DB and global redis
+    When I run 'bin/ee site create php-local-db.test --cache --type=php --local-db --with-db'
+    Then After delay of 5 seconds
+    And The site 'php-local-db.test' should have webroot
+    And The site 'php-local-db.test' should have index file
+    And Request on 'php-local-db.test' should contain following headers:
+      | header          |
+      | HTTP/1.1 200 OK |
+    And Check global redis cache for 'php-local-db.test'
+    And Check local mysql database connection for 'php-local-db.test'
+
+  Scenario: Create PHP site with local redis and global db
+    When I run 'bin/ee site create php-local-redis.test --cache --type=php --with-db --with-local-redis'
+    Then After delay of 5 seconds
+    And The site 'php-local-redis.test' should have webroot
+    And The site 'php-local-redis.test' should have index file
+    And Request on 'php-local-redis.test' should contain following headers:
+      | header          |
+      | HTTP/1.1 200 OK |
+    And Check local redis cache for 'php-local-redis.test'
+    And Check global mysql database connection for 'php-local-redis.test'
+
+  Scenario: Create PHP site with local DB and local redis
+    When I run 'bin/ee site create php-local-db-redis.test --cache --type=php --local-db --with-db --with-local-redis'
+    Then After delay of 5 seconds
+    And The site 'php-local-db-redis.test' should have webroot
+    And The site 'php-local-db-redis.test' should have index file
+    And Request on 'php-local-db-redis.test' should contain following headers:
+      | header          |
+      | HTTP/1.1 200 OK |
+    And Check local redis cache for 'php-local-db-redis.test'
+    And Check local mysql database connection for 'php-local-db-redis.test'
+
   Scenario: Delete the sites
     When I run 'bin/ee site delete php.test --yes'
     Then STDOUT should return something like

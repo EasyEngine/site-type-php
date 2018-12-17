@@ -687,6 +687,10 @@ class PHP extends EE_Site_Command {
 		$this->site_data['site_fs_path'] = WEBROOT . $this->site_data['site_url'];
 		$this->level                     = 1;
 		try {
+			if ( 'inherit' === $this->site_data['site_ssl'] ) {
+				$this->check_parent_site_certs( $this->site_data['site_url'] );
+			}
+
 			\EE\Site\Utils\create_site_root( $this->site_data['site_fs_path'], $this->site_data['site_url'] );
 			$this->level = 2;
 

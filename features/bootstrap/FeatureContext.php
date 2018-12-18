@@ -329,12 +329,12 @@ class FeatureContext implements Context
 	 */
 	public function checkGlobalRedisCacheOfSite($site)
 	{
-		exec("docker exec -it ee-global-redis redis-cli set 'easyengine' 'rocks'");
-		$output = exec("docker exec -it ee-global-redis redis-cli get 'easyengine'");
+		exec( sprintf( "docker exec -it %s redis-cli set 'easyengine' 'rocks'", GLOBAL_REDIS_CONTAINER ) );
+		$output = exec( sprintf( "docker exec -it %s redis-cli get 'easyengine'", GLOBAL_REDIS_CONTAINER ) );
 		if ( '"rocks"' !== $output ) {
 			throw new Exception("Global redis not working for $site site. Getting '$output' instead of 'rock'");
 		}
-		exec("docker exec -it ee-global-redis redis-cli del 'easyengine'");
+		exec( sprintf( "docker exec -it %s redis-cli del 'easyengine'", GLOBAL_REDIS_CONTAINER ) );
 	}
 
 	/**

@@ -795,7 +795,7 @@ class PHP extends EE_Site_Command {
 
 		$whitelisted_containers = [ 'nginx', 'php' ];
 
-		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
+		if ( 'mysql' === $this->site_data['app_sub_type'] && 'db' === $this->site_data['db_host'] ) {
 			$whitelisted_containers[] = 'db';
 		}
 		parent::restart( $args, $assoc_args, $whitelisted_containers );

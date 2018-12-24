@@ -705,7 +705,7 @@ class PHP extends EE_Site_Command {
 
 			\EE\Site\Utils\configure_postfix( $this->site_data['site_url'], $this->site_data['site_fs_path'] );
 
-			if ( ! $this->site_data['site_ssl'] ) {
+			if ( ! $this->site_data['site_ssl'] || 'self' === $this->site_data['site_ssl'] ) {
 				\EE\Site\Utils\create_etc_hosts_entry( $this->site_data['site_url'] );
 			}
 			if ( ! $this->skip_status_check ) {

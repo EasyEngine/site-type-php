@@ -20,6 +20,21 @@
         "branch-alias": {
             "dev-master": "1.x-dev"
         },
-        "bundled": true
+        "bundled": true,
+        "commands": [
+            "site create --type=php",
+            "site delete",
+            "site update",
+            "site info --type=php",
+            "site enable",
+            "site disable",
+            "site info",
+            "site ssl",
+            "site list",
+            "site reload --type=php",
+            "site restart --type=php",
+            "site share",
+            "site clean"
+        ]
     }
 }

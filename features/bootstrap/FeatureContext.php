@@ -14,7 +14,16 @@ include_once( EE_ROOT . '/php/utils.php' );
 
 define( 'EE', true );
 define( 'EE_VERSION', trim( file_get_contents( EE_ROOT . '/VERSION' ) ) );
-define( 'EE_ROOT_DIR', '/opt/easyengine' );
+
+$root_alias = '/opt';
+if ( 'Darwin' === php_uname( 's' ) ) {
+	$sys_name   = posix_getpwuid(posix_geteuid())['name'];
+	if ( ! empty( $sys_name ) ) {
+		$root_alias = '/Users/' . $sys_name;
+	}
+}
+define( 'EE_ROOT_DIR', $root_alias . '/easyengine' );
+
 
 require_once EE_ROOT . '/php/bootstrap.php';
 
@@ -57,6 +66,28 @@ class FeatureContext implements Context
 	public $command;
 	public $webroot_path;
 	public $ee_path;
+
+	/**
+	 * Contain all test sites name.
+	 *
+	 * @var array
+	 */
+	public static $test_sites = [
+		'php.test',
+		'example.test',
+		'www.example1.test',
+		'labels.test',
+		'php-local-db.test',
+		'php-local-redis.test',
+		'php-local-db-redis.test',
+	];
+
+	/**
+	 * Variable contain all fail sites details.
+	 *
+	 * @var array
+	 */
+	public $fail_sites = [];
 
 	/**
 	 * Initializes context.
@@ -255,19 +286,10 @@ class FeatureContext implements Context
 	 */
 	public static function cleanup( AfterFeatureScope $scope )
 	{
-		$test_sites = [
-			'php.test',
-			'example.test',
-			'www.example1.test',
-			'labels.test',
-			'php-local-db.test',
-			'php-local-redis.test',
-			'php-local-db-redis.test',
-		];
 
 		$result          = EE::launch( 'sudo bin/ee site list --format=text', false,  true );
 		$running_sites   = explode( "\n", $result->stdout );
-		$sites_to_delete = array_intersect( $test_sites, $running_sites );
+		$sites_to_delete = array_intersect( self::$test_sites, $running_sites );
 
 		foreach ( $sites_to_delete as $site ) {
 			exec( "sudo bin/ee site delete $site --yes" );
@@ -403,6 +425,62 @@ class FeatureContext implements Context
 
 		if ( ! empty( $db_connection ) ) {
 			throw new Exception( $db_connection  );
+		}
+	}
+
+	/**
+	 * @when Create :nth php site to fix docker issue
+	 */
+	public function createNNumberOfSite($nth)
+	{
+		for ( $i=1; $i <= $nth; $i++ ) {
+			$domain             = 'example'.$i.'.test';
+			self::$test_sites[] = $domain;  // Add site name to cleanup.
+			$this->createPhpSite($domain); // Create html site.
+		}
+		// Show list of fail sites.
+		foreach( $this->fail_sites as $site_name => $fail_site ) {
+			echo $site_name . "\n" . $fail_site . "\n";
+		}
+	}
+
+	/**
+	 * Function to create n number of html sites
+	 *
+	 * @param string $domain The site name to create site.
+	 * @return void
+	 */
+	public function createPhpSite($domain)
+	{
+		$command = sprintf(
+			'bin/ee site create %s --type=php',
+			$domain
+		);
+		EE::launch($command, false, true);
+		$this->checkSiteIsRunningOrNot($domain);
+	}
+
+	/**
+	 * Function to check site is running or not
+	 *
+	 * @param string $site Site domain name.
+	 * @return void
+	 */
+	public function checkSiteIsRunningOrNot($site)
+	{
+		$url = 'http://' . $site;
+
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_HEADER, true);
+		curl_setopt($ch, CURLOPT_NOBODY, true);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_VERBOSE, true);
+		$headers = curl_exec($ch);
+
+		curl_close($ch);
+		if ( false === strpos( $headers, 'HTTP/1.1 200 OK' ) ) {
+			$this->fail_sites[$site] =  "Unable to find `HTTP/1.1 200 OK` \nActual output is : " . $headers;
 		}
 	}
 

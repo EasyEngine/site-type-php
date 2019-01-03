@@ -9,6 +9,7 @@ use EE\Model\Site;
 use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
 use function EE\Site\Utils\get_site_info;
+use function EE\Utils\trailingslashit;
 
 /**
  * Creates a simple PHP Website.
@@ -122,6 +123,9 @@ class PHP extends EE_Site_Command {
 	 * [--force]
 	 * : Resets the remote database if it is not empty.
 	 *
+	 * [--public-dir]
+	 * : Set custom source directory for site.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     # Create php site (without db)
@@ -141,6 +145,9 @@ class PHP extends EE_Site_Command {
 	 *
 	 *     # Create php site with remote database
 	 *     $ ee site create example.com --type=php --with-db --dbhost=localhost --dbuser=username --dbpass=password
+	 *
+	 *     # Create php site with custom source directory
+	 *     $ ee site create example.com --type=php --public-dir=src
 	 *
 	 */
 	public function create( $args, $assoc_args ) {
@@ -162,8 +169,13 @@ class PHP extends EE_Site_Command {
 		$this->site_data['php_version']       = \EE\Utils\get_flag_value( $assoc_args, 'php', 'latest' );
 		$this->site_data['app_sub_type']      = 'php';
 
-		$local_cache                          = \EE\Utils\get_flag_value( $assoc_args, 'with-local-redis' );
-		$this->site_data['cache_host']        = '';
+		// Create container fs path for site.
+		$public_root                               = \EE\Utils\get_flag_value( $assoc_args, 'public-dir' );
+		$this->site_data['site_container_fs_path'] = empty( $public_root ) ? '/var/www/htdocs' : sprintf( '/var/www/htdocs/%s', ltrim( $public_root, '/' ) );
+
+		$local_cache                   = \EE\Utils\get_flag_value( $assoc_args, 'with-local-redis' );
+		$this->site_data['cache_host'] = '';
+
 		if ( $this->cache_type ) {
 			$this->site_data['cache_host'] = $local_cache ? 'redis' : 'global-redis';
 		}
@@ -370,12 +382,22 @@ class PHP extends EE_Site_Command {
 			} else {
 				\EE\Site\Utils\restart_site_containers( $this->site_data['site_fs_path'], [ 'nginx', 'php' ] );
 			}
+
+			// Get site src path from container fs path.
+			$public_dir_path = ltrim( trailingslashit( $this->site_data['site_container_fs_path'] ), '/var/www/htdocs/' );
+			$site_src_dir    = empty( $public_dir_path ) ? $site_src_dir : $site_src_dir . '/' . rtrim( $public_dir_path, '/' );
+
 			$index_data = [
 				'version'       => 'v' . EE_VERSION,
-				'site_src_root' => $this->site_data['site_fs_path'] . '/app/htdocs',
+				'site_src_root' => $site_src_dir,
 			];
+
 			$index_html = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/index.php.mustache', $index_data );
 			$this->fs->dumpFile( $site_src_dir . '/index.php', $index_html );
+
+			// Assign www-data user ownership.
+			chdir( $this->site_data['site_fs_path'] );
+			EE::exec( sprintf( 'docker-compose exec --user=root php chown -R www-data: %s', $this->site_data['site_container_fs_path'] ) );
 
 			\EE::success( 'Configuration files copied.' );
 		} catch ( \Exception $e ) {
@@ -540,6 +562,7 @@ class PHP extends EE_Site_Command {
 	private function generate_default_conf( $cache_type, $server_name ) {
 
 		$default_conf_data['server_name']        = $server_name;
+		$default_conf_data['document_root']      = rtrim( $this->site_data['site_container_fs_path'], '/' );
 		$default_conf_data['site_url']           = $this->site_data['site_url'];
 		$default_conf_data['include_php_conf']   = ! $cache_type;
 		$default_conf_data['include_redis_conf'] = $cache_type;
@@ -700,7 +723,7 @@ class PHP extends EE_Site_Command {
 				$this->maybe_verify_remote_db_connection();
 				$containers[] = 'db';
 			}
-			$this->level = 3;
+			$this->level   = 3;
 			$this->configure_site_files();
 
 			\EE\Site\Utils\configure_postfix( $this->site_data['site_url'], $this->site_data['site_fs_path'] );
@@ -729,19 +752,20 @@ class PHP extends EE_Site_Command {
 		$ssl = null;
 
 		$data = [
-			'site_url'             => $this->site_data['site_url'],
-			'site_type'            => $this->site_data['site_type'],
-			'app_admin_email'      => $this->site_data['app_admin_email'],
-			'cache_nginx_browser'  => (int) $this->cache_type,
-			'cache_nginx_fullpage' => (int) $this->cache_type,
-			'cache_mysql_query'    => (int) $this->cache_type,
-			'cache_host'           => $this->site_data['cache_host'],
-			'site_fs_path'         => $this->site_data['site_fs_path'],
-			'site_ssl'             => $this->site_data['site_ssl'],
-			'site_ssl_wildcard'    => $this->site_data['site_ssl_wildcard'] ? 1 : 0,
-			'php_version'          => $this->site_data['php_version'],
-			'created_on'           => date( 'Y-m-d H:i:s', time() ),
-			'app_sub_type'         => $this->site_data['app_sub_type'],
+			'site_url'               => $this->site_data['site_url'],
+			'site_type'              => $this->site_data['site_type'],
+			'app_admin_email'        => $this->site_data['app_admin_email'],
+			'cache_nginx_browser'    => (int) $this->cache_type,
+			'cache_nginx_fullpage'   => (int) $this->cache_type,
+			'cache_mysql_query'      => (int) $this->cache_type,
+			'cache_host'             => $this->site_data['cache_host'],
+			'site_fs_path'           => $this->site_data['site_fs_path'],
+			'site_ssl'               => $this->site_data['site_ssl'],
+			'site_ssl_wildcard'      => $this->site_data['site_ssl_wildcard'] ? 1 : 0,
+			'php_version'            => $this->site_data['php_version'],
+			'created_on'             => date( 'Y-m-d H:i:s', time() ),
+			'app_sub_type'           => $this->site_data['app_sub_type'],
+			'site_container_fs_path' => rtrim( $this->site_data['site_container_fs_path'], '/' ),
 		];
 
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {

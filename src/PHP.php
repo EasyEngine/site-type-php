@@ -723,7 +723,7 @@ class PHP extends EE_Site_Command {
 				$this->maybe_verify_remote_db_connection();
 				$containers[] = 'db';
 			}
-			$this->level   = 3;
+			$this->level = 3;
 			$this->configure_site_files();
 
 			\EE\Site\Utils\configure_postfix( $this->site_data['site_url'], $this->site_data['site_fs_path'] );

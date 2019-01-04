@@ -171,7 +171,7 @@ class PHP extends EE_Site_Command {
 
 		// Create container fs path for site.
 		$public_root                               = \EE\Utils\get_flag_value( $assoc_args, 'public-dir' );
-		$this->site_data['site_container_fs_path'] = empty( $public_root ) ? '/var/www/htdocs' : sprintf( '/var/www/htdocs/%s', ltrim( $public_root, '/' ) );
+		$this->site_data['site_container_fs_path'] = empty( $public_root ) ? '/var/www/htdocs' : sprintf( '/var/www/htdocs/%s', trim( $public_root, '/' ) );
 
 		$local_cache                   = \EE\Utils\get_flag_value( $assoc_args, 'with-local-redis' );
 		$this->site_data['cache_host'] = '';

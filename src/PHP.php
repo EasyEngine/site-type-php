@@ -115,6 +115,9 @@ class PHP extends EE_Site_Command {
 	 *
 	 * [--ssl=<value>]
 	 * : Enables ssl on site.
+	 * ---
+	 * default: le
+	 * ---
 	 *
 	 * [--wildcard]
 	 * : Gets wildcard SSL .

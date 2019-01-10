@@ -10,7 +10,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
 use function EE\Site\Utils\get_site_info;
 use function EE\Utils\get_flag_value;
-use function EE\Site\Utils\get_value_if_flag_isset;
+use function EE\Utils\get_value_if_flag_isset;
 
 /**
  * Creates a simple PHP Website.

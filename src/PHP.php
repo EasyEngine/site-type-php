@@ -117,12 +117,12 @@ class PHP extends EE_Site_Command {
 	 *
 	 * [--ssl]
 	 * : Enables ssl on site.
-         * ---
-         * options:
-         *      - le
-         *      - self
-         *      - inherit
-         * ---
+	 * ---
+	 * options:
+	 *      - le
+	 *      - self
+	 *      - inherit
+	 * ---
 	 *
 	 * [--wildcard]
 	 * : Gets wildcard SSL .

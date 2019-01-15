@@ -124,7 +124,7 @@ class PHP extends EE_Site_Command {
 	 * : Resets the remote database if it is not empty.
 	 *
 	 * [--public-dir]
-	 * : Set custom source directory for site.
+	 * : Set custom source directory for site inside htdocs.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -146,8 +146,8 @@ class PHP extends EE_Site_Command {
 	 *     # Create php site with remote database
 	 *     $ ee site create example.com --type=php --with-db --dbhost=localhost --dbuser=username --dbpass=password
 	 *
-	 *     # Create php site with custom source directory
-	 *     $ ee site create example.com --type=php --public-dir=src
+	 *     # Create php site with custom source directory inside htdocs ( SITE_ROOT/app/htdocs/public )
+	 *     $ ee site create example.com --type=php --public-dir=public
 	 *
 	 */
 	public function create( $args, $assoc_args ) {

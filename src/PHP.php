@@ -9,6 +9,8 @@ use EE\Model\Site;
 use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
 use function EE\Site\Utils\get_site_info;
+use function EE\Site\Utils\get_public_dir;
+use function EE\Site\Utils\get_webroot;
 use function EE\Utils\trailingslashit;
 
 /**
@@ -169,9 +171,7 @@ class PHP extends EE_Site_Command {
 		$this->site_data['php_version']       = \EE\Utils\get_flag_value( $assoc_args, 'php', 'latest' );
 		$this->site_data['app_sub_type']      = 'php';
 
-		// Create container fs path for site.
-		$public_root                               = \EE\Utils\get_flag_value( $assoc_args, 'public-dir' );
-		$this->site_data['site_container_fs_path'] = empty( $public_root ) ? '/var/www/htdocs' : sprintf( '/var/www/htdocs/%s', trim( $public_root, '/' ) );
+		$this->site_data['site_container_fs_path'] = get_public_dir( $assoc_args );
 
 		$local_cache                   = \EE\Utils\get_flag_value( $assoc_args, 'with-local-redis' );
 		$this->site_data['cache_host'] = '';
@@ -383,9 +383,7 @@ class PHP extends EE_Site_Command {
 				\EE\Site\Utils\restart_site_containers( $this->site_data['site_fs_path'], [ 'nginx', 'php' ] );
 			}
 
-			// Get site src path from container fs path.
-			$public_dir_path = str_replace( '/var/www/htdocs/', '', trailingslashit( $this->site_data['site_container_fs_path'] ) );
-			$site_src_dir    = empty( $public_dir_path ) ? $site_src_dir : $site_src_dir . '/' . rtrim( $public_dir_path, '/' );
+			$site_src_dir = get_webroot( $site_src_dir, $this->site_data['site_container_fs_path'] );
 
 			$index_data = [
 				'version'       => 'v' . EE_VERSION,

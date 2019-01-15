@@ -20,7 +20,7 @@ Feature: Site Command
     When I run 'bin/ee site create'
     Then STDOUT should return exactly
     """
-    usage: ee site create <site-name> [--ssl=<value>] [--wildcard] [--type=<type>] [--skip-status-check]
+    usage: ee site create <site-name> [--ssl] [--wildcard] [--type=<type>] [--skip-status-check]
     """
 
   Scenario: Create php site successfully

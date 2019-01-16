@@ -14,6 +14,7 @@ use function EE\Site\Utils\get_webroot;
 use function EE\Utils\trailingslashit;
 use function EE\Utils\get_flag_value;
 use function EE\Utils\get_value_if_flag_isset;
+use function EE\Utils\remove_trailing_slash;
 
 /**
  * Creates a simple PHP Website.
@@ -125,7 +126,14 @@ class PHP extends EE_Site_Command {
 	 *      - le
 	 *      - self
 	 *      - inherit
+	 *      - custom
 	 * ---
+	 *
+	 * [--ssl-key=<ssl-key-path>]
+	 * : Path to the SSL key file.
+	 *
+	 * [--ssl-crt=<ssl-crt-path>]
+	 * : Path ro the SSL crt file.
 	 *
 	 * [--wildcard]
 	 * : Gets wildcard SSL .
@@ -187,7 +195,10 @@ class PHP extends EE_Site_Command {
 			$this->site_data['cache_host'] = $local_cache ? 'redis' : 'global-redis';
 		}
 
-		$this->site_data['site_ssl'] = get_value_if_flag_isset( $assoc_args, 'ssl', [ 'le', 'self', 'inherit' ], 'le' );
+		$this->site_data['site_ssl'] = get_value_if_flag_isset( $assoc_args, 'ssl', [ 'le', 'self', 'inherit', 'custom' ], 'le' );
+		if ( 'custom' === $this->site_data['site_ssl'] ) {
+			$this->custom_site_ssl( get_flag_value( $assoc_args, 'ssl-key' ), get_flag_value( $assoc_args, 'ssl-crt' ) );
+		}
 
 		$supported_php_versions = [ 5.6, 7.2, 'latest' ];
 		if ( ! in_array( $this->site_data['php_version'], $supported_php_versions ) ) {

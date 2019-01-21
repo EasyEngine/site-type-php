@@ -11,10 +11,8 @@ use function EE\Site\Utils\auto_site_name;
 use function EE\Site\Utils\get_site_info;
 use function EE\Site\Utils\get_public_dir;
 use function EE\Site\Utils\get_webroot;
-use function EE\Utils\trailingslashit;
 use function EE\Utils\get_flag_value;
 use function EE\Utils\get_value_if_flag_isset;
-use function EE\Utils\remove_trailing_slash;
 
 /**
  * Creates a simple PHP Website.
@@ -53,17 +51,11 @@ class PHP extends EE_Site_Command {
 	 */
 	private $force;
 
-	/**
-	 * @var Filesystem $fs Symfony Filesystem object.
-	 */
-	private $fs;
-
 	public function __construct() {
 
 		parent::__construct();
 		$this->level  = 0;
 		$this->logger = \EE::get_file_logger()->withName( 'site_php_command' );
-		$this->fs     = new Filesystem();
 
 		$this->site_data['site_type'] = 'php';
 	}
@@ -196,6 +188,13 @@ class PHP extends EE_Site_Command {
 		}
 
 		$this->site_data['site_ssl'] = get_value_if_flag_isset( $assoc_args, 'ssl', [ 'le', 'self', 'inherit', 'custom' ], 'le' );
+		if ( 'custom' === $this->site_data['site_ssl'] ) {
+			try {
+				$this->validate_site_custom_ssl( get_flag_value( $assoc_args, 'ssl-key' ), get_flag_value( $assoc_args, 'ssl-crt' ) );
+			} catch ( \Exception $e ) {
+				$this->catch_clean( $e );
+			}
+		}
 
 		$supported_php_versions = [ 5.6, 7.2, 'latest' ];
 		if ( ! in_array( $this->site_data['php_version'], $supported_php_versions ) ) {
@@ -752,7 +751,7 @@ class PHP extends EE_Site_Command {
 			}
 
 			if ( 'custom' === $this->site_data['site_ssl'] ) {
-				$this->custom_site_ssl( get_flag_value( $assoc_args, 'ssl-key' ), get_flag_value( $assoc_args, 'ssl-crt' ) );
+				$this->custom_site_ssl();
 			}
 
 			$this->www_ssl_wrapper( [ 'nginx' ] );

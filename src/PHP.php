@@ -11,7 +11,6 @@ use function EE\Site\Utils\auto_site_name;
 use function EE\Site\Utils\get_site_info;
 use function EE\Site\Utils\get_public_dir;
 use function EE\Site\Utils\get_webroot;
-use function EE\Utils\trailingslashit;
 use function EE\Utils\get_flag_value;
 use function EE\Utils\get_value_if_flag_isset;
 
@@ -52,17 +51,11 @@ class PHP extends EE_Site_Command {
 	 */
 	private $force;
 
-	/**
-	 * @var Filesystem $fs Symfony Filesystem object.
-	 */
-	private $fs;
-
 	public function __construct() {
 
 		parent::__construct();
 		$this->level  = 0;
 		$this->logger = \EE::get_file_logger()->withName( 'site_php_command' );
-		$this->fs     = new Filesystem();
 
 		$this->site_data['site_type'] = 'php';
 	}
@@ -125,7 +118,14 @@ class PHP extends EE_Site_Command {
 	 *      - le
 	 *      - self
 	 *      - inherit
+	 *      - custom
 	 * ---
+	 *
+	 * [--ssl-key=<ssl-key-path>]
+	 * : Path to the SSL key file.
+	 *
+	 * [--ssl-crt=<ssl-crt-path>]
+	 * : Path to the SSL crt file.
 	 *
 	 * [--wildcard]
 	 * : Gets wildcard SSL .
@@ -159,6 +159,9 @@ class PHP extends EE_Site_Command {
 	 *     # Create php site with custom source directory inside htdocs ( SITE_ROOT/app/htdocs/public )
 	 *     $ ee site create example.com --type=php --public-dir=public
 	 *
+	 *     # Create PHP site with custom ssl certs
+	 *     $ ee site create example.com --ssl=custom  --ssl-key='/path/to/example.com.key' --ssl-crt='/path/to/example.com.crt'
+	 *
 	 */
 	public function create( $args, $assoc_args ) {
 
@@ -187,7 +190,14 @@ class PHP extends EE_Site_Command {
 			$this->site_data['cache_host'] = $local_cache ? 'redis' : 'global-redis';
 		}
 
-		$this->site_data['site_ssl'] = get_value_if_flag_isset( $assoc_args, 'ssl', [ 'le', 'self', 'inherit' ], 'le' );
+		$this->site_data['site_ssl'] = get_value_if_flag_isset( $assoc_args, 'ssl', [ 'le', 'self', 'inherit', 'custom' ], 'le' );
+		if ( 'custom' === $this->site_data['site_ssl'] ) {
+			try {
+				$this->validate_site_custom_ssl( get_flag_value( $assoc_args, 'ssl-key' ), get_flag_value( $assoc_args, 'ssl-crt' ) );
+			} catch ( \Exception $e ) {
+				$this->catch_clean( $e );
+			}
+		}
 
 		$supported_php_versions = [ 5.6, 7.2, 'latest' ];
 		if ( ! in_array( $this->site_data['php_version'], $supported_php_versions ) ) {
@@ -741,6 +751,10 @@ class PHP extends EE_Site_Command {
 			if ( ! $this->skip_status_check ) {
 				$this->level = 4;
 				\EE\Site\Utils\site_status_check( $this->site_data['site_url'] );
+			}
+
+			if ( 'custom' === $this->site_data['site_ssl'] ) {
+				$this->custom_site_ssl();
 			}
 
 			$this->www_ssl_wrapper( [ 'nginx' ] );

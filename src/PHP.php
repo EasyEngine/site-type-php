@@ -9,6 +9,10 @@ use EE\Model\Site;
 use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
 use function EE\Site\Utils\get_site_info;
+use function EE\Site\Utils\get_public_dir;
+use function EE\Site\Utils\get_webroot;
+use function EE\Utils\get_flag_value;
+use function EE\Utils\get_value_if_flag_isset;
 
 /**
  * Creates a simple PHP Website.
@@ -47,17 +51,11 @@ class PHP extends EE_Site_Command {
 	 */
 	private $force;
 
-	/**
-	 * @var Filesystem $fs Symfony Filesystem object.
-	 */
-	private $fs;
-
 	public function __construct() {
 
 		parent::__construct();
 		$this->level  = 0;
 		$this->logger = \EE::get_file_logger()->withName( 'site_php_command' );
-		$this->fs     = new Filesystem();
 
 		$this->site_data['site_type'] = 'php';
 	}
@@ -113,14 +111,30 @@ class PHP extends EE_Site_Command {
 	 * [--skip-status-check]
 	 * : Skips site status check.
 	 *
-	 * [--ssl=<value>]
+	 * [--ssl]
 	 * : Enables ssl on site.
+	 * ---
+	 * options:
+	 *      - le
+	 *      - self
+	 *      - inherit
+	 *      - custom
+	 * ---
+	 *
+	 * [--ssl-key=<ssl-key-path>]
+	 * : Path to the SSL key file.
+	 *
+	 * [--ssl-crt=<ssl-crt-path>]
+	 * : Path to the SSL crt file.
 	 *
 	 * [--wildcard]
 	 * : Gets wildcard SSL .
 	 *
 	 * [--force]
 	 * : Resets the remote database if it is not empty.
+	 *
+	 * [--public-dir]
+	 * : Set custom source directory for site inside htdocs.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -142,6 +156,12 @@ class PHP extends EE_Site_Command {
 	 *     # Create php site with remote database
 	 *     $ ee site create example.com --type=php --with-db --dbhost=localhost --dbuser=username --dbpass=password
 	 *
+	 *     # Create php site with custom source directory inside htdocs ( SITE_ROOT/app/htdocs/public )
+	 *     $ ee site create example.com --type=php --public-dir=public
+	 *
+	 *     # Create PHP site with custom ssl certs
+	 *     $ ee site create example.com --ssl=custom  --ssl-key='/path/to/example.com.key' --ssl-crt='/path/to/example.com.crt'
+	 *
 	 */
 	public function create( $args, $assoc_args ) {
 
@@ -157,15 +177,26 @@ class PHP extends EE_Site_Command {
 
 		$this->site_data['site_fs_path']      = WEBROOT . $this->site_data['site_url'];
 		$this->cache_type                     = \EE\Utils\get_flag_value( $assoc_args, 'cache' );
-		$this->site_data['site_ssl']          = \EE\Utils\get_flag_value( $assoc_args, 'ssl', '' );
 		$this->site_data['site_ssl_wildcard'] = \EE\Utils\get_flag_value( $assoc_args, 'wildcard' );
 		$this->site_data['php_version']       = \EE\Utils\get_flag_value( $assoc_args, 'php', 'latest' );
 		$this->site_data['app_sub_type']      = 'php';
 
-		$local_cache                          = \EE\Utils\get_flag_value( $assoc_args, 'with-local-redis' );
-		$this->site_data['cache_host']        = '';
+		$this->site_data['site_container_fs_path'] = get_public_dir( $assoc_args );
+
+		$local_cache                   = \EE\Utils\get_flag_value( $assoc_args, 'with-local-redis' );
+		$this->site_data['cache_host'] = '';
+
 		if ( $this->cache_type ) {
 			$this->site_data['cache_host'] = $local_cache ? 'redis' : 'global-redis';
+		}
+
+		$this->site_data['site_ssl'] = get_value_if_flag_isset( $assoc_args, 'ssl', [ 'le', 'self', 'inherit', 'custom' ], 'le' );
+		if ( 'custom' === $this->site_data['site_ssl'] ) {
+			try {
+				$this->validate_site_custom_ssl( get_flag_value( $assoc_args, 'ssl-key' ), get_flag_value( $assoc_args, 'ssl-crt' ) );
+			} catch ( \Exception $e ) {
+				$this->catch_clean( $e );
+			}
 		}
 
 		$supported_php_versions = [ 5.6, 7.2, 'latest' ];
@@ -370,12 +401,20 @@ class PHP extends EE_Site_Command {
 			} else {
 				\EE\Site\Utils\restart_site_containers( $this->site_data['site_fs_path'], [ 'nginx', 'php' ] );
 			}
+
+			$site_src_dir = get_webroot( $site_src_dir, $this->site_data['site_container_fs_path'] );
+
 			$index_data = [
 				'version'       => 'v' . EE_VERSION,
-				'site_src_root' => $this->site_data['site_fs_path'] . '/app/htdocs',
+				'site_src_root' => $site_src_dir,
 			];
+
 			$index_html = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/index.php.mustache', $index_data );
 			$this->fs->dumpFile( $site_src_dir . '/index.php', $index_html );
+
+			// Assign www-data user ownership.
+			chdir( $this->site_data['site_fs_path'] );
+			EE::exec( sprintf( 'docker-compose exec --user=root php chown -R www-data: %s', $this->site_data['site_container_fs_path'] ) );
 
 			\EE::success( 'Configuration files copied.' );
 		} catch ( \Exception $e ) {
@@ -540,6 +579,7 @@ class PHP extends EE_Site_Command {
 	private function generate_default_conf( $cache_type, $server_name ) {
 
 		$default_conf_data['server_name']        = $server_name;
+		$default_conf_data['document_root']      = rtrim( $this->site_data['site_container_fs_path'], '/' );
 		$default_conf_data['site_url']           = $this->site_data['site_url'];
 		$default_conf_data['include_php_conf']   = ! $cache_type;
 		$default_conf_data['include_redis_conf'] = $cache_type;
@@ -713,6 +753,10 @@ class PHP extends EE_Site_Command {
 				\EE\Site\Utils\site_status_check( $this->site_data['site_url'] );
 			}
 
+			if ( 'custom' === $this->site_data['site_ssl'] ) {
+				$this->custom_site_ssl();
+			}
+
 			$this->www_ssl_wrapper( [ 'nginx' ] );
 		} catch ( \Exception $e ) {
 			$this->catch_clean( $e );
@@ -729,19 +773,20 @@ class PHP extends EE_Site_Command {
 		$ssl = null;
 
 		$data = [
-			'site_url'             => $this->site_data['site_url'],
-			'site_type'            => $this->site_data['site_type'],
-			'app_admin_email'      => $this->site_data['app_admin_email'],
-			'cache_nginx_browser'  => (int) $this->cache_type,
-			'cache_nginx_fullpage' => (int) $this->cache_type,
-			'cache_mysql_query'    => (int) $this->cache_type,
-			'cache_host'           => $this->site_data['cache_host'],
-			'site_fs_path'         => $this->site_data['site_fs_path'],
-			'site_ssl'             => $this->site_data['site_ssl'],
-			'site_ssl_wildcard'    => $this->site_data['site_ssl_wildcard'] ? 1 : 0,
-			'php_version'          => $this->site_data['php_version'],
-			'created_on'           => date( 'Y-m-d H:i:s', time() ),
-			'app_sub_type'         => $this->site_data['app_sub_type'],
+			'site_url'               => $this->site_data['site_url'],
+			'site_type'              => $this->site_data['site_type'],
+			'app_admin_email'        => $this->site_data['app_admin_email'],
+			'cache_nginx_browser'    => (int) $this->cache_type,
+			'cache_nginx_fullpage'   => (int) $this->cache_type,
+			'cache_mysql_query'      => (int) $this->cache_type,
+			'cache_host'             => $this->site_data['cache_host'],
+			'site_fs_path'           => $this->site_data['site_fs_path'],
+			'site_ssl'               => $this->site_data['site_ssl'],
+			'site_ssl_wildcard'      => $this->site_data['site_ssl_wildcard'] ? 1 : 0,
+			'php_version'            => $this->site_data['php_version'],
+			'created_on'             => date( 'Y-m-d H:i:s', time() ),
+			'app_sub_type'           => $this->site_data['app_sub_type'],
+			'site_container_fs_path' => rtrim( $this->site_data['site_container_fs_path'], '/' ),
 		];
 
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {

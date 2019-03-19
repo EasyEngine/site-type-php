@@ -136,6 +136,9 @@ class PHP extends EE_Site_Command {
 	 * [--public-dir]
 	 * : Set custom source directory for site inside htdocs.
 	 *
+	 * [--git]
+	 * : Create your site using your git repo content. All content will be cloned into webroot.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     # Create php site (without db)
@@ -161,6 +164,9 @@ class PHP extends EE_Site_Command {
 	 *
 	 *     # Create PHP site with custom ssl certs
 	 *     $ ee site create example.com --ssl=custom  --ssl-key='/path/to/example.com.key' --ssl-crt='/path/to/example.com.crt'
+	 *
+	 *     # Create PHP site using repository content
+	 *     $ ee site create example.com  --type=php --git=banago/simple-php-website
 	 *
 	 */
 	public function create( $args, $assoc_args ) {
@@ -267,6 +273,14 @@ class PHP extends EE_Site_Command {
 		$this->force                        = \EE\Utils\get_flag_value( $assoc_args, 'force' );
 
 		\EE::log( 'Configuring project.' );
+
+		// Check if git repo URL was provided.
+		$this->git_repo = \EE\Utils\get_flag_value( $assoc_args, 'git', '' );
+
+		// Update variable data for further processing.
+		if ( ! empty( $this->git_repo ) ) {
+			$this->is_git_repo = true;
+		}
 
 		$this->create_site( $assoc_args );
 		\EE\Utils\delem_log( 'site create end' );
@@ -409,8 +423,20 @@ class PHP extends EE_Site_Command {
 				'site_src_root' => $site_src_dir,
 			];
 
-			$index_html = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/index.php.mustache', $index_data );
-			$this->fs->dumpFile( $site_src_dir . '/index.php', $index_html );
+			// Create sample file if no git repo data was provided else clone into site root.
+			if ( ! $this->is_git_repo ) {
+				$index_php = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/index.php.mustache', $index_data );
+				$this->fs->dumpFile( $site_src_dir . '/index.php', $index_php );
+			} else {
+				// Check if provided git repo is accessible.
+				if ( ! $this->check_git_repo_access( $this->git_repo ) ) {
+					EE::error( "Could not read from remote repository. Please make sure you have the correct access rights and the repository exists." );
+				} else {
+					EE::log( PHP_EOL . "Repo access check completed." . PHP_EOL );
+					// Clone the repo content, defaults to htdocs directory.
+					$this->complete_git_clone( $site_src_dir );
+				}
+			}
 
 			// Assign www-data user ownership.
 			chdir( $this->site_data['site_fs_path'] );

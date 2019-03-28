@@ -87,6 +87,7 @@ class PHP extends EE_Site_Command {
 	 * options:
 	 *	- 5.6
 	 *	- 7.2
+	 *	- 7.3
 	 *	- latest
 	 * ---
 	 *
@@ -199,7 +200,7 @@ class PHP extends EE_Site_Command {
 			}
 		}
 
-		$supported_php_versions = [ 5.6, 7.2, 'latest' ];
+		$supported_php_versions = [ 5.6, 7.2, 7.3, 'latest' ];
 		if ( ! in_array( $this->site_data['php_version'], $supported_php_versions ) ) {
 			$old_version = $this->site_data['php_version'];
 			$floor       = (int) floor( $this->site_data['php_version'] );
@@ -213,6 +214,8 @@ class PHP extends EE_Site_Command {
 			}
 			\EE::confirm( sprintf( 'EEv4 does not support PHP %s. Continue with PHP %s?', $old_version, $this->site_data['php_version'] ) );
 		}
+
+		$this->site_data['php_version'] = ( 7.2 === (double) $this->site_data['php_version'] ) ? 'latest' : $this->site_data['php_version'];
 
 		if ( $this->cache_type && ! $local_cache ) {
 			\EE\Service\Utils\init_global_container( GLOBAL_REDIS );

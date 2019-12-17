@@ -379,8 +379,9 @@ class PHP extends EE_Site_Command {
 
 		$default_conf_content   = $this->generate_default_conf( $this->cache_type, $server_name );
 
-		$env_content     = \EE\Utils\mustache_render( SITE_PHP_TEMPLATE_ROOT . '/config/.env.mustache', $env_data );
-		$php_ini_content = file_get_contents( SITE_WP_TEMPLATE_ROOT . '/config/php-fpm/php.ini.mustache' );
+		$custom_ini      = '5.6' === (string) $this->site_data['php_version'] ? 'php.ini-56.mustache' : 'php.ini.mustache';
+		$env_content     = \EE\Utils\mustache_render( SITE_WP_TEMPLATE_ROOT . '/config/.env.mustache', $env_data );
+		$php_ini_content = file_get_contents( SITE_WP_TEMPLATE_ROOT . '/config/php-fpm/' . $custom_ini );
 
 		try {
 			$this->dump_docker_compose_yml( [ 'nohttps' => true ] );

@@ -186,3 +186,7 @@ Feature: Site Command
         | db         |
         | redis      |
         | phpmyadmin |
+
+  @site50
+  Scenario: Create 50 sites to test Docker limit
+    When Create '50' php site to fix docker issue

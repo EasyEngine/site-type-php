@@ -131,7 +131,16 @@ class PHP extends EE_Site_Command {
 	 * : Path to the SSL crt file.
 	 *
 	 * [--wildcard]
-	 * : Gets wildcard SSL .
+	 * : Gets wildcard SSL.
+	 *
+	 * [--proxy-cache=<on-or-off>]
+	 * : Enable or disable proxy cache on site.
+	 * ---
+	 * default: off
+	 * options:
+	 *  - on
+	 *  - off
+	 * ---
 	 *
 	 * [--force]
 	 * : Resets the remote database if it is not empty.
@@ -183,10 +192,14 @@ class PHP extends EE_Site_Command {
 		$this->site_data['site_ssl_wildcard'] = \EE\Utils\get_flag_value( $assoc_args, 'wildcard' );
 		$this->site_data['php_version']       = \EE\Utils\get_flag_value( $assoc_args, 'php', 'latest' );
 		$this->site_data['app_sub_type']      = 'php';
+		$this->site_data['proxy-cache']       = \EE\Utils\get_flag_value( $assoc_args, 'proxy-cache' );
 
 		$this->site_data['site_container_fs_path'] = get_public_dir( $assoc_args );
 
 		$local_cache                   = \EE\Utils\get_flag_value( $assoc_args, 'with-local-redis' );
+		if ( 'on' === $this->site_data['proxy-cache'] ) {
+			$this->cache_type = true;
+		}
 		$this->site_data['cache_host'] = '';
 
 		if ( $this->cache_type ) {
@@ -767,6 +780,10 @@ class PHP extends EE_Site_Command {
 			}
 
 			$this->www_ssl_wrapper( [ 'nginx' ] );
+
+			if ( 'on' === $this->site_data['proxy-cache'] ) {
+				$this->update_proxy_cache( [], $assoc_args, true );
+			}
 		} catch ( \Exception $e ) {
 			$this->catch_clean( $e );
 		}
@@ -789,6 +806,7 @@ class PHP extends EE_Site_Command {
 			'cache_nginx_fullpage'   => (int) $this->cache_type,
 			'cache_mysql_query'      => (int) $this->cache_type,
 			'cache_host'             => $this->site_data['cache_host'],
+			'proxy_cache'            => $this->site_data['proxy-cache'],
 			'site_fs_path'           => $this->site_data['site_fs_path'],
 			'site_ssl'               => $this->site_data['site_ssl'],
 			'site_ssl_wildcard'      => $this->site_data['site_ssl_wildcard'] ? 1 : 0,

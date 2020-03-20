@@ -142,6 +142,12 @@ class PHP extends EE_Site_Command {
 	 *  - off
 	 * ---
 	 *
+	 * [--proxy-cache-max-size=<size-in-m-or-g>]
+	 * : Max size for proxy-cache.
+	 *
+	 * [--proxy-cache-max-time=<time-in-s-or-m>]
+	 * : Max time for proxy cache to last.
+	 *
 	 * [--force]
 	 * : Resets the remote database if it is not empty.
 	 *

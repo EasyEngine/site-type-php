@@ -914,6 +914,7 @@ class PHP extends EE_Site_Command {
 		];
 		$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'], $db_data );
 		\EE\Utils\delem_log( 'site cleanup end' );
+		\EE::log( 'Report bugs here: https://github.com/EasyEngine/site-type-php' );
 		exit;
 	}
 

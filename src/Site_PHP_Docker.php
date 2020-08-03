@@ -60,6 +60,7 @@ class Site_PHP_Docker {
 					[ 'name' => 'MYSQL_PASSWORD' ],
 				],
 			];
+			$db['sysctls']      = sysctl_parameters();
 			$db['networks']     = $network_default;
 		}
 		// PHP configuration.
@@ -205,6 +206,7 @@ class Site_PHP_Docker {
 				'name' => 'io.easyengine.site=${VIRTUAL_HOST}',
 			],
 		];
+		$redis['sysctls']      = sysctl_parameters();
 		$redis['networks']     = $network_default;
 
 		$base[] = $php;

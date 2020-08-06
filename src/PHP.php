@@ -11,7 +11,7 @@ use function EE\Site\Utils\auto_site_name;
 use function EE\Site\Utils\get_site_info;
 use function EE\Site\Utils\get_public_dir;
 use function EE\Site\Utils\get_webroot;
-use function EE\Site\Utils\get_parent_of_alias;
+use function EE\Site\Utils\check_alias_in_db;
 use function EE\Utils\get_flag_value;
 use function EE\Utils\get_value_if_flag_isset;
 
@@ -94,6 +94,9 @@ class PHP extends EE_Site_Command {
 	 *	- latest
 	 * ---
 	 *
+	 * [--alias-domains=<domains>]
+	 * : Comma separated list of alias domains for the site.
+	 *
 	 * [--dbname=<dbname>]
 	 * : Set the database name.
 	 *
@@ -154,6 +157,9 @@ class PHP extends EE_Site_Command {
 	 *     # Create php site with wildcard ssl
 	 *     $ ee site create example.com --type=php --ssl=le --wildcard
 	 *
+	 *     # Create site with alias domains and ssl
+	 *     $ ee site create example.com --type=html --alias-domains='a.com,*.a.com,b.com' --ssl=le
+	 *
 	 *     # Create php site with self signed certificate
 	 *     $ ee site create example.com --type=php --ssl=self
 	 *
@@ -179,11 +185,11 @@ class PHP extends EE_Site_Command {
 			\EE::error( sprintf( "Site %1\$s already exists. If you want to re-create it please delete the older one using:\n`ee site delete %1\$s`", $this->site_data['site_url'] ) );
 		}
 
-		$parent_site = get_parent_of_alias( $this->site_data['site_url'] );
+		$alias_domains = \EE\Utils\get_flag_value( $assoc_args, 'alias-domains', '' );
 
-		if ( ! empty( $parent_site ) ) {
-			\EE::error( sprintf( "Site %1\$s already exists as an alias domain for site: %2\$s. Please delete it from alias domains of %2\$s if you want to create an independent site for it.", $this->site_data['site_url'], $parent_site ) );
-		}
+		$alias_domain_to_check   = explode( ',', $alias_domains );
+		$alias_domain_to_check[] = $this->site_data['site_url'];
+		check_alias_in_db( $alias_domain_to_check );
 
 		$this->site_data['site_fs_path']      = WEBROOT . $this->site_data['site_url'];
 		$this->cache_type                     = \EE\Utils\get_flag_value( $assoc_args, 'cache' );
@@ -208,6 +214,17 @@ class PHP extends EE_Site_Command {
 				$this->catch_clean( $e );
 			}
 		}
+
+		$this->site_data['alias_domains'] = $this->site_data['site_url'];
+		$this->site_data['alias_domains'] .= ',';
+		if ( ! empty( $alias_domains ) ) {
+			$comma_seprated_domains = explode( ',', $alias_domains );
+			foreach ( $comma_seprated_domains as $domain ) {
+				$trimmed_domain = trim( $domain );
+				$this->site_data['alias_domains'] .= $trimmed_domain . ',';
+			}
+		}
+		$this->site_data['alias_domains'] = substr( $this->site_data['alias_domains'], 0, - 1 );
 
 		$supported_php_versions = [ 5.6, 7.0, 7.2, 7.3, 7.4, 'latest' ];
 		if ( ! in_array( $this->site_data['php_version'], $supported_php_versions ) ) {
@@ -336,6 +353,10 @@ class PHP extends EE_Site_Command {
 			$info[] = [ 'DB Password', $this->site_data['db_password'] ];
 		}
 
+		$alias_domains            = implode( ',', array_diff( explode( ',', $this->site_data['alias_domains'] ), [ $this->site_data['site_url'] ] ) );
+		$info_alias_domains_value = empty( $alias_domains ) ? 'None' : $alias_domains;
+
+		$info[] = [ 'Alias Domains', $info_alias_domains_value ];
 		$info[] = [ 'E-Mail', $this->site_data['app_admin_email'] ];
 		$info[] = [ 'SSL', $ssl ];
 
@@ -359,7 +380,6 @@ class PHP extends EE_Site_Command {
 		$site_nginx_default_conf = $site_conf_dir . '/nginx/conf.d/main.conf';
 		$site_php_ini            = $site_conf_dir . '/php/php/conf.d/custom.ini';
 		$site_src_dir            = $this->site_data['site_fs_path'] . '/app/htdocs';
-		$server_name             = $this->site_data['site_url'];
 		$custom_conf_dest        = $site_conf_dir . '/nginx/custom/user.conf';
 		$custom_conf_source      = SITE_PHP_TEMPLATE_ROOT . '/config/nginx/user.conf.mustache';
 		$process_user            = posix_getpwuid( posix_geteuid() );
@@ -384,6 +404,7 @@ class PHP extends EE_Site_Command {
 			$env_data['user_password'] = $this->site_data['db_password'];
 		}
 
+		$server_name            = implode( ' ', explode( ',', $this->site_data['alias_domains'] ) );
 		$default_conf_content   = $this->generate_default_conf( $this->cache_type, $server_name );
 
 		$custom_ini      = '5.6' === (string) $this->site_data['php_version'] ? 'php.ini-56.mustache' : 'php.ini.mustache';
@@ -565,11 +586,12 @@ class PHP extends EE_Site_Command {
 
 		$site_docker_yml = $this->site_data['site_fs_path'] . '/docker-compose.yml';
 
-		$filter                = [];
-		$filter[]              = $this->site_data['cache_host'];
-		$filter['site_prefix'] = \EE_DOCKER::get_docker_style_prefix( $this->site_data['site_url'] );
-		$filter['is_ssl']      = $this->site_data['site_ssl'];
-		$filter['php_version'] = ( string ) $this->site_data['php_version'];
+		$filter                  = [];
+		$filter[]                = $this->site_data['cache_host'];
+		$filter['site_prefix']   = \EE_DOCKER::get_docker_style_prefix( $this->site_data['site_url'] );
+		$filter['is_ssl']        = $this->site_data['site_ssl'];
+		$filter['php_version']   = ( string ) $this->site_data['php_version'];
+		$filter['alias_domains'] = implode( ',', array_diff( explode( ',', $this->site_data['alias_domains'] ), [ $this->site_data['site_url'] ] ) );
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$filter[] = $this->site_data['db_host'];
 		}
@@ -796,6 +818,7 @@ class PHP extends EE_Site_Command {
 			'cache_nginx_fullpage'   => (int) $this->cache_type,
 			'cache_mysql_query'      => (int) $this->cache_type,
 			'cache_host'             => $this->site_data['cache_host'],
+			'alias_domains'          => $this->site_data['alias_domains'],
 			'site_fs_path'           => $this->site_data['site_fs_path'],
 			'site_ssl'               => $this->site_data['site_ssl'],
 			'site_ssl_wildcard'      => $this->site_data['site_ssl_wildcard'] ? 1 : 0,

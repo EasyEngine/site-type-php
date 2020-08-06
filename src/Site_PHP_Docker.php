@@ -4,6 +4,7 @@ namespace EE\Site\Type;
 
 use function EE\Utils\mustache_render;
 use function EE\Site\Utils\get_ssl_policy;
+use function EE\Site\Utils\sysctl_parameters;
 
 class Site_PHP_Docker {
 
@@ -59,6 +60,7 @@ class Site_PHP_Docker {
 					[ 'name' => 'MYSQL_PASSWORD' ],
 				],
 			];
+			$db['sysctls']      = sysctl_parameters();
 			$db['networks']     = $network_default;
 		}
 		// PHP configuration.
@@ -86,6 +88,7 @@ class Site_PHP_Docker {
 				'vol' => \EE_DOCKER::get_mounting_volume_array( $volumes['php'] ),
 			],
 		];
+		$php['sysctls']     = sysctl_parameters();
 		$php['environment'] = [
 			'env' => [
 				[ 'name' => 'USER_ID' ],
@@ -153,6 +156,7 @@ class Site_PHP_Docker {
 				'name' => 'io.easyengine.site=${VIRTUAL_HOST}',
 			],
 		];
+		$nginx['sysctls']  = sysctl_parameters();
 		$nginx['networks'] = [
 			'net' => [
 				[ 'name' => 'global-frontend-network' ],
@@ -210,6 +214,7 @@ class Site_PHP_Docker {
 				'name' => 'io.easyengine.site=${VIRTUAL_HOST}',
 			],
 		];
+		$redis['sysctls']      = sysctl_parameters();
 		$redis['networks']     = $network_default;
 
 		$base[] = $php;

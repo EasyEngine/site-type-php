@@ -120,7 +120,11 @@ class Site_PHP_Docker {
 		$nginx['depends_on']['dependency'][] = [ 'name' => 'php' ];
 		$nginx['restart']                    = $restart_default;
 
-		$v_host = 'VIRTUAL_HOST';
+		$v_host = 'VIRTUAL_HOST=${VIRTUAL_HOST}';
+
+		if ( ! empty( $filters['alias_domains'] ) ) {
+			$v_host .= ',' . $filters['alias_domains'];
+		}
 
 		$nginx['environment'] = [
 			'env' => [
@@ -129,6 +133,10 @@ class Site_PHP_Docker {
 				[ 'name' => 'HSTS=off' ],
 			],
 		];
+
+		if ( ! empty( $filters['alias_domains'] ) ) {
+			$nginx['environment']['env'][] = [ 'name' => 'CERT_NAME=${VIRTUAL_HOST}' ];
+		}
 
 		$ssl_policy = get_ssl_policy();
 		if ( ! empty( $filters['nohttps'] ) && $filters['nohttps'] ) {

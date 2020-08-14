@@ -111,7 +111,7 @@ Feature: Site Command
     When I run 'bin/ee site info php.test'
     Then STDOUT should return something like
     """
-    | Site      | http://php.test
+    | Site          | http://php.test
     """
 
   Scenario: Reload site services

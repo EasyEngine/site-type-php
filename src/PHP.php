@@ -338,7 +338,8 @@ class PHP extends EE_Site_Command {
 	 *
 	 */
 	public function info( $args, $assoc_args ) {
-		$format   = \EE\Utils\get_flag_value( $assoc_args, 'format' );
+
+		$format = \EE\Utils\get_flag_value( $assoc_args, 'format' );
 
 		\EE\Utils\delem_log( 'site info start' );
 		if ( ! isset( $this->site_data['site_url'] ) ) {

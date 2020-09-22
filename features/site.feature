@@ -20,7 +20,7 @@ Feature: Site Command
     When I run 'bin/ee site create'
     Then STDOUT should return exactly
     """
-    usage: ee site create <site-name> [--ssl] [--ssl-key=<ssl-key-path>] [--ssl-crt=<ssl-crt-path>] [--wildcard] [--type=<type>] [--skip-status-check] [--public-dir]
+    usage: ee site create <site-name> [--ssl] [--ssl-key=<ssl-key-path>] [--ssl-crt=<ssl-crt-path>] [--wildcard] [--type=<type>] [--alias-domains=<domains>] [--skip-status-check] [--public-dir]
     """
 
   Scenario: Create php site successfully
@@ -56,8 +56,8 @@ Feature: Site Command
     Success: Site php.test disabled.
     """
     And Request on 'php.test' should contain following headers:
-        | header                                       |
-        | HTTP/1.1 503 Service Temporarily Unavailable |
+        | header                 |
+        | HTTP/1.1 404 Not Found |
 
   Scenario: Check site enable sub command is present
     When I run 'bin/ee site enable'
@@ -111,7 +111,7 @@ Feature: Site Command
     When I run 'bin/ee site info php.test'
     Then STDOUT should return something like
     """
-    | Site      | http://php.test
+    | Site          | http://php.test
     """
 
   Scenario: Reload site services

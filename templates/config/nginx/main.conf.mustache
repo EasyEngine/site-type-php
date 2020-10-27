@@ -1,11 +1,22 @@
 # Add your custom config in custom/user.conf
 # ALL CHANGES IN THIS FILE WILL BE LOST AFTER EasyEngine Update
 
+upstream php {
+	server {{site_url}}_php:9000;
+}
+
+{{#include_redis_conf}}
+upstream redis {
+	server {{cache_host}}:6379;
+	keepalive 10;
+}
+{{/include_redis_conf}}
+
 server {
 	access_log   /var/log/nginx/access.log;
 	error_log    /var/log/nginx/error.log;
 
-	root /var/www/htdocs;
+	root {{document_root}};
 
 	server_name {{server_name}};
 
@@ -21,6 +32,10 @@ server {
 	if ($query_string != "") {
 		set $skip 1;
 	}
+	# Don't cache URL containing the following segments
+	if ($request_uri ~* "(/ee-admin/)") {
+		set $skip 1;
+	}
 	# Use cached or actual file if they exists, Otherwise pass request to WordPress
 	location / {
 		try_files $uri $uri/ /index.php?$args;
@@ -29,19 +44,22 @@ server {
 	location /redis-fetch {
 		internal  ;
 		set  $redis_key $args;
-		redis_pass  redis:6379;
+		redis_pass  redis;
 	}
 	location /redis-store {
 		internal  ;
 		set_unescape_uri $key $arg_key ;
 		redis2_query  set $key $echo_request_body;
 		redis2_query expire $key 14400;
-		redis2_pass  redis:6379;
+		redis2_pass  redis;
 	}
 
 	location ~ \.php$ {
 		#  add_header Cache-Control "max-age=0, no-cache, no-store, must-revalidate";
-		set $key "nginx-cache:$scheme$request_method$host$request_uri";
+		set $key "{{site_url}}:http$request_method$host$request_uri";
+		if ($HTTP_X_FORWARDED_PROTO = "https") {
+			set $key "{{site_url}}:https$request_method$host$request_uri";
+		}
 		try_files $uri =404;
 
 		srcache_fetch_skip $skip;
@@ -58,7 +76,7 @@ server {
 		more_set_headers 'X-SRCache-Store-Status $srcache_store_status';
 
 		include fastcgi_params;
-		fastcgi_pass php:9000;
+		fastcgi_pass php;
 	}
 
 	{{/include_redis_conf}}
@@ -72,7 +90,7 @@ server {
 		try_files $uri =404;
 		fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
 		include fastcgi_params;
-		fastcgi_pass php:9000;
+		fastcgi_pass php;
 	}
 	{{/include_php_conf}}
 
@@ -125,13 +143,17 @@ server {
 		return 403;
 	}
 	# Status pages
-	location /nginx_status {
+	location = /ee-admin/nginx_status {
 		stub_status on;
 		access_log off;
 	}
-	location ~ ^/(status|ping) {
+	location = /ee-admin/status {
 		include fastcgi_params;
-		fastcgi_pass php:9000;
+		fastcgi_pass php;
+	}
+	location = /ee-admin/ping {
+		include fastcgi_params;
+		fastcgi_pass php;
 	}
 	location ~*  \.(css|js)$ {
 		expires 1d;
@@ -142,5 +164,5 @@ server {
 
 	client_max_body_size 100m;
 
-	include custom/*.conf;
+	include /usr/local/openresty/nginx/conf/custom/*.conf;
 }

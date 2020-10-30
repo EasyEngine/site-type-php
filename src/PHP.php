@@ -401,6 +401,8 @@ class PHP extends EE_Site_Command {
 		$site_src_dir            = $this->site_data['site_fs_path'] . '/app/htdocs';
 		$custom_conf_dest        = $site_conf_dir . '/nginx/custom/user.conf';
 		$custom_conf_source      = SITE_PHP_TEMPLATE_ROOT . '/config/nginx/user.conf.mustache';
+		$admin_tools_conf_dest   = $site_conf_dir . '/nginx/custom/admin-tools.conf';
+		$admin_tools_conf_source = SITE_PHP_TEMPLATE_ROOT . '/config/nginx/admin-tools.conf.mustache';
 		$process_user            = posix_getpwuid( posix_geteuid() );
 
 		\EE::log( 'Creating PHP site ' . $this->site_data['site_url'] );
@@ -439,6 +441,7 @@ class PHP extends EE_Site_Command {
 			\EE\Site\Utils\set_postfix_files( $this->site_data['site_url'], $this->site_data['site_fs_path'] . '/services' );
 			$this->fs->dumpFile( $site_nginx_default_conf, $default_conf_content );
 			$this->fs->copy( $custom_conf_source, $custom_conf_dest );
+			$this->fs->copy( $admin_tools_conf_source, $admin_tools_conf_dest );
 			$this->fs->remove( $this->site_data['site_fs_path'] . '/app/html' );
 			$this->fs->dumpFile( $site_php_ini, $php_ini_content );
 			if ( IS_DARWIN ) {

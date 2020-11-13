@@ -196,6 +196,11 @@ class Site_PHP_Docker {
 		$postfix['image']        = [ 'name' => 'easyengine/postfix:' . $img_versions['easyengine/postfix'] ];
 		$postfix['hostname']     = [ 'name' => '${VIRTUAL_HOST}' ];
 		$postfix['restart']      = $restart_default;
+		$postfix['environment']  = [
+			'env' => [
+				[ 'name' => 'RELAY_HOST' ],
+			],
+		];
 		$postfix['labels']       = [
 			'label' => [
 				'name' => 'io.easyengine.site=${VIRTUAL_HOST}',

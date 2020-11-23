@@ -257,8 +257,8 @@ class Site_PHP_Docker {
 		}
 
 		$binding = [
-			'services'        => $base,
-			'network'         => $network,
+			'services' => $base,
+			'network'  => $network,
 		];
 
 		if ( ! IS_DARWIN ) {

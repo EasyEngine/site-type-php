@@ -86,12 +86,12 @@ class PHP extends EE_Site_Command {
 	 * ---
 	 * default: latest
 	 * options:
-	 *	- 5.6
-	 *	- 7.0
-	 *	- 7.2
-	 *	- 7.3
-	 *	- 7.4
-	 *	- latest
+	 *    - 5.6
+	 *    - 7.0
+	 *    - 7.2
+	 *    - 7.3
+	 *    - 7.4
+	 *    - latest
 	 * ---
 	 *
 	 * [--alias-domains=<domains>]
@@ -206,7 +206,12 @@ class PHP extends EE_Site_Command {
 			$this->site_data['cache_host'] = $local_cache ? 'redis' : 'global-redis';
 		}
 
-		$this->site_data['site_ssl'] = get_value_if_flag_isset( $assoc_args, 'ssl', [ 'le', 'self', 'inherit', 'custom' ], 'le' );
+		$this->site_data['site_ssl'] = get_value_if_flag_isset( $assoc_args, 'ssl', [
+			'le',
+			'self',
+			'inherit',
+			'custom'
+		], 'le' );
 		if ( 'custom' === $this->site_data['site_ssl'] ) {
 			try {
 				$this->validate_site_custom_ssl( get_flag_value( $assoc_args, 'ssl-key' ), get_flag_value( $assoc_args, 'ssl-crt' ) );
@@ -220,7 +225,7 @@ class PHP extends EE_Site_Command {
 		if ( ! empty( $alias_domains ) ) {
 			$comma_seprated_domains = explode( ',', $alias_domains );
 			foreach ( $comma_seprated_domains as $domain ) {
-				$trimmed_domain = trim( $domain );
+				$trimmed_domain                   = trim( $domain );
 				$this->site_data['alias_domains'] .= $trimmed_domain . ',';
 			}
 		}
@@ -234,7 +239,7 @@ class PHP extends EE_Site_Command {
 				$this->site_data['php_version'] = 5.6;
 			} elseif ( 7 === $floor ) {
 				$this->site_data['php_version'] = 7.4;
-				$old_version .= ' yet';
+				$old_version                    .= ' yet';
 			} else {
 				EE::error( 'Unsupported PHP version: ' . $this->site_data['php_version'] );
 			}
@@ -251,12 +256,15 @@ class PHP extends EE_Site_Command {
 
 		$this->site_data['db_host'] = '';
 		if ( ! empty( $assoc_args['with-db'] ) ) {
-			$this->site_data['app_sub_type']     = 'mysql';
-			$this->site_data['db_name']          = \EE\Utils\get_flag_value( $assoc_args, 'dbname', str_replace( [ '.', '-' ], '_', $this->site_data['site_url'] ) );
-			$this->site_data['db_host']          = \EE\Utils\get_flag_value( $assoc_args, 'dbhost', GLOBAL_DB );
-			$this->site_data['db_port']          = '3306';
-			$this->site_data['db_user']          = \EE\Utils\get_flag_value( $assoc_args, 'dbuser', $this->create_site_db_user( $this->site_data['site_url'] ) );
-			$this->site_data['db_password']      = \EE\Utils\get_flag_value( $assoc_args, 'dbpass', \EE\Utils\random_password() );
+			$this->site_data['app_sub_type'] = 'mysql';
+			$this->site_data['db_name']      = \EE\Utils\get_flag_value( $assoc_args, 'dbname', str_replace( [
+				'.',
+				'-'
+			], '_', $this->site_data['site_url'] ) );
+			$this->site_data['db_host']      = \EE\Utils\get_flag_value( $assoc_args, 'dbhost', GLOBAL_DB );
+			$this->site_data['db_port']      = '3306';
+			$this->site_data['db_user']      = \EE\Utils\get_flag_value( $assoc_args, 'dbuser', $this->create_site_db_user( $this->site_data['site_url'] ) );
+			$this->site_data['db_password']  = \EE\Utils\get_flag_value( $assoc_args, 'dbpass', \EE\Utils\random_password() );
 
 			if ( $this->cache_type && ! $local_cache ) {
 				\EE\Service\Utils\init_global_container( GLOBAL_REDIS );
@@ -352,6 +360,7 @@ class PHP extends EE_Site_Command {
 			$site = (array) Site::find( $this->site_data['site_url'] );
 			$site = reset( $site );
 			EE::log( json_encode( $site ) );
+
 			return;
 		}
 
@@ -415,8 +424,8 @@ class PHP extends EE_Site_Command {
 		];
 
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
-			$local    = ( 'db' === $this->site_data['db_host'] ) ? true : false;
-			$db_host  = $local ? $this->site_data['db_host'] : $this->site_data['db_host'] . ':' . $this->site_data['db_port'];
+			$local   = ( 'db' === $this->site_data['db_host'] ) ? true : false;
+			$db_host = $local ? $this->site_data['db_host'] : $this->site_data['db_host'] . ':' . $this->site_data['db_port'];
 
 			$env_data['local']         = $local;
 			$env_data['root_password'] = $this->site_data['db_root_password'];
@@ -425,8 +434,8 @@ class PHP extends EE_Site_Command {
 			$env_data['user_password'] = $this->site_data['db_password'];
 		}
 
-		$server_name            = implode( ' ', explode( ',', $this->site_data['alias_domains'] ) );
-		$default_conf_content   = $this->generate_default_conf( $this->cache_type, $server_name );
+		$server_name          = implode( ' ', explode( ',', $this->site_data['alias_domains'] ) );
+		$default_conf_content = $this->generate_default_conf( $this->cache_type, $server_name );
 
 		$custom_ini      = '5.6' === (string) $this->site_data['php_version'] ? 'php.ini-56.mustache' : 'php.ini.mustache';
 		$env_content     = \EE\Utils\mustache_render( SITE_WP_TEMPLATE_ROOT . '/config/.env.mustache', $env_data );
@@ -478,6 +487,7 @@ class PHP extends EE_Site_Command {
 	 * Generate and place docker-compose.yml file.
 	 *
 	 * @param array $additional_filters Filters to alter docker-compose file.
+	 *
 	 * @ignorecommand
 	 */
 	public function dump_docker_compose_yml( $additional_filters = [] ) {
@@ -785,7 +795,7 @@ class PHP extends EE_Site_Command {
 	 */
 	private function create_site( $assoc_args ) {
 
-		$this->level                     = 1;
+		$this->level = 1;
 		try {
 			if ( 'inherit' === $this->site_data['site_ssl'] ) {
 				$this->check_parent_site_certs( $this->site_data['site_url'] );

@@ -199,6 +199,7 @@ class Site_PHP_Docker {
 		$postfix['environment']  = [
 			'env' => [
 				[ 'name' => 'RELAY_HOST' ],
+				[ 'name' => 'REPLY_EMAIL' ],
 			],
 		];
 		$postfix['labels']       = [

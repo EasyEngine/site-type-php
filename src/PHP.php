@@ -82,7 +82,7 @@ class PHP extends EE_Site_Command {
 	 * : Create separate db container instead of using global db.
 	 *
 	 * [--php=<php-version>]
-	 * : PHP version for site. Currently only supports PHP 5.6, 7.0, 7.2, 7.3, 7.4 and latest.
+	 * : PHP version for site. Currently only supports PHP 5.6, 7.0, 7.2, 7.3, 7.4, 8.0 and latest.
 	 * ---
 	 * default: latest
 	 * options:
@@ -91,6 +91,7 @@ class PHP extends EE_Site_Command {
 	 *	- 7.2
 	 *	- 7.3
 	 *	- 7.4
+	 *	- 8.0
 	 *	- latest
 	 * ---
 	 *
@@ -226,7 +227,7 @@ class PHP extends EE_Site_Command {
 		}
 		$this->site_data['alias_domains'] = substr( $this->site_data['alias_domains'], 0, - 1 );
 
-		$supported_php_versions = [ 5.6, 7.0, 7.2, 7.3, 7.4, 'latest' ];
+		$supported_php_versions = [ 5.6, 7.0, 7.2, 7.3, 7.4, 8.0, 'latest' ];
 		if ( ! in_array( $this->site_data['php_version'], $supported_php_versions ) ) {
 			$old_version = $this->site_data['php_version'];
 			$floor       = (int) floor( $this->site_data['php_version'] );
@@ -234,6 +235,9 @@ class PHP extends EE_Site_Command {
 				$this->site_data['php_version'] = 5.6;
 			} elseif ( 7 === $floor ) {
 				$this->site_data['php_version'] = 7.4;
+				$old_version .= ' yet';
+			} elseif ( 8 === $floor ) {
+				$this->site_data['php_version'] = 8.0;
 				$old_version .= ' yet';
 			} else {
 				EE::error( 'Unsupported PHP version: ' . $this->site_data['php_version'] );
@@ -401,6 +405,8 @@ class PHP extends EE_Site_Command {
 		$site_src_dir            = $this->site_data['site_fs_path'] . '/app/htdocs';
 		$custom_conf_dest        = $site_conf_dir . '/nginx/custom/user.conf';
 		$custom_conf_source      = SITE_PHP_TEMPLATE_ROOT . '/config/nginx/user.conf.mustache';
+		$admin_tools_conf_dest   = $site_conf_dir . '/nginx/custom/admin-tools.conf';
+		$admin_tools_conf_source = SITE_PHP_TEMPLATE_ROOT . '/config/nginx/admin-tools.conf.mustache';
 		$process_user            = posix_getpwuid( posix_geteuid() );
 
 		\EE::log( 'Creating PHP site ' . $this->site_data['site_url'] );
@@ -439,6 +445,7 @@ class PHP extends EE_Site_Command {
 			\EE\Site\Utils\set_postfix_files( $this->site_data['site_url'], $this->site_data['site_fs_path'] . '/services' );
 			$this->fs->dumpFile( $site_nginx_default_conf, $default_conf_content );
 			$this->fs->copy( $custom_conf_source, $custom_conf_dest );
+			$this->fs->copy( $admin_tools_conf_source, $admin_tools_conf_dest );
 			$this->fs->remove( $this->site_data['site_fs_path'] . '/app/html' );
 			$this->fs->dumpFile( $site_php_ini, $php_ini_content );
 			if ( IS_DARWIN ) {

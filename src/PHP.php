@@ -302,8 +302,6 @@ class PHP extends EE_Site_Command {
 
 		$this->create_site( $assoc_args );
 
-		EE\Site\Utils\set_subnet_ip();
-
 		\EE\Utils\delem_log( 'site create end' );
 	}
 

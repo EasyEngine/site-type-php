@@ -6,7 +6,6 @@ namespace EE\Site\Type;
 
 use EE;
 use EE\Model\Site;
-use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
 use function EE\Site\Utils\get_site_info;
 use function EE\Site\Utils\get_public_dir;
@@ -82,16 +81,17 @@ class PHP extends EE_Site_Command {
 	 * : Create separate db container instead of using global db.
 	 *
 	 * [--php=<php-version>]
-	 * : PHP version for site. Currently only supports PHP 5.6, 7.0, 7.2, 7.3, 7.4 and latest.
+	 * : PHP version for site. Currently only supports PHP 5.6, 7.0, 7.2, 7.3, 7.4, 8.0 and latest.
 	 * ---
 	 * default: latest
 	 * options:
-	 *    - 5.6
-	 *    - 7.0
-	 *    - 7.2
-	 *    - 7.3
-	 *    - 7.4
-	 *    - latest
+	 *	- 5.6
+	 *	- 7.0
+	 *	- 7.2
+	 *	- 7.3
+	 *	- 7.4
+	 *	- 8.0
+	 *	- latest
 	 * ---
 	 *
 	 * [--alias-domains=<domains>]
@@ -175,11 +175,11 @@ class PHP extends EE_Site_Command {
 	 */
 	public function create( $args, $assoc_args ) {
 
-		$this->check_site_count();
 		\EE\Utils\delem_log( 'site create start' );
 		$this->logger->debug( 'args:', $args );
 		$this->logger->debug( 'assoc_args:', empty( $assoc_args ) ? array( 'NULL' ) : $assoc_args );
-		$this->site_data['site_url'] = strtolower( \EE\Utils\remove_trailing_slash( $args[0] ) );
+		$this->site_data['site_url']  = strtolower( \EE\Utils\remove_trailing_slash( $args[0] ) );
+		$this->site_data['subnet_ip'] = \EE\Site\Utils\get_subnet_ip();
 
 		if ( Site::find( $this->site_data['site_url'] ) ) {
 			\EE::error( sprintf( "Site %1\$s already exists. If you want to re-create it please delete the older one using:\n`ee site delete %1\$s`", $this->site_data['site_url'] ) );
@@ -206,12 +206,7 @@ class PHP extends EE_Site_Command {
 			$this->site_data['cache_host'] = $local_cache ? 'redis' : 'global-redis';
 		}
 
-		$this->site_data['site_ssl'] = get_value_if_flag_isset( $assoc_args, 'ssl', [
-			'le',
-			'self',
-			'inherit',
-			'custom'
-		], 'le' );
+		$this->site_data['site_ssl'] = get_value_if_flag_isset( $assoc_args, 'ssl', [ 'le', 'self', 'inherit', 'custom' ], 'le' );
 		if ( 'custom' === $this->site_data['site_ssl'] ) {
 			try {
 				$this->validate_site_custom_ssl( get_flag_value( $assoc_args, 'ssl-key' ), get_flag_value( $assoc_args, 'ssl-crt' ) );
@@ -231,7 +226,7 @@ class PHP extends EE_Site_Command {
 		}
 		$this->site_data['alias_domains'] = substr( $this->site_data['alias_domains'], 0, - 1 );
 
-		$supported_php_versions = [ 5.6, 7.0, 7.2, 7.3, 7.4, 'latest' ];
+		$supported_php_versions = [ 5.6, 7.0, 7.2, 7.3, 7.4, 8.0, 'latest' ];
 		if ( ! in_array( $this->site_data['php_version'], $supported_php_versions ) ) {
 			$old_version = $this->site_data['php_version'];
 			$floor       = (int) floor( $this->site_data['php_version'] );
@@ -239,6 +234,9 @@ class PHP extends EE_Site_Command {
 				$this->site_data['php_version'] = 5.6;
 			} elseif ( 7 === $floor ) {
 				$this->site_data['php_version'] = 7.4;
+				$old_version                    .= ' yet';
+			} elseif ( 8 === $floor ) {
+				$this->site_data['php_version'] = 8.0;
 				$old_version                    .= ' yet';
 			} else {
 				EE::error( 'Unsupported PHP version: ' . $this->site_data['php_version'] );
@@ -306,6 +304,7 @@ class PHP extends EE_Site_Command {
 		\EE::log( 'Configuring project.' );
 
 		$this->create_site( $assoc_args );
+
 		\EE\Utils\delem_log( 'site create end' );
 	}
 
@@ -624,6 +623,8 @@ class PHP extends EE_Site_Command {
 		$filter['is_ssl']        = $this->site_data['site_ssl'];
 		$filter['php_version']   = ( string ) $this->site_data['php_version'];
 		$filter['alias_domains'] = implode( ',', array_diff( explode( ',', $this->site_data['alias_domains'] ), [ $this->site_data['site_url'] ] ) );
+		$filter['subnet_ip']     = $this->site_data['subnet_ip'];
+
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$filter[] = $this->site_data['db_host'];
 		}
@@ -844,6 +845,7 @@ class PHP extends EE_Site_Command {
 
 		$data = [
 			'site_url'               => $this->site_data['site_url'],
+			'subnet_ip'              => $this->site_data['subnet_ip'],
 			'site_type'              => $this->site_data['site_type'],
 			'app_admin_email'        => $this->site_data['app_admin_email'],
 			'cache_nginx_browser'    => (int) $this->cache_type,

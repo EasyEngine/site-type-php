@@ -34,6 +34,7 @@ class Site_PHP_Docker {
 					[ 'name' => 'org.label-schema.vendor=EasyEngine' ],
 					[ 'name' => 'io.easyengine.site=${VIRTUAL_HOST}' ],
 				],
+				'subnet_ip' => $filters['subnet_ip'],
 			],
 		];
 

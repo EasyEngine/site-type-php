@@ -346,7 +346,7 @@ class FeatureContext implements Context
 		$site_root_folder = EE_SITE_ROOT . '/' . $site;
 		exec("cd $site_root_folder && docker-compose exec redis redis-cli set 'easyengine' 'rocks'");
 		$output = exec("cd $site_root_folder && docker-compose exec redis redis-cli get 'easyengine'");
-		if ( 'rocks' !== $output ) {
+		if ( '"rocks"' !== $output ) {
 			throw new Exception("Local redis not working for $site site. Getting '$output' instead of 'rocks'.");
 		}
 		exec("cd $site_root_folder && docker-compose exec redis redis-cli del 'easyengine'");

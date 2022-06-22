@@ -81,7 +81,7 @@ class PHP extends EE_Site_Command {
 	 * : Create separate db container instead of using global db.
 	 *
 	 * [--php=<php-version>]
-	 * : PHP version for site. Currently only supports PHP 5.6, 7.0, 7.2, 7.3, 7.4, 8.0 and latest.
+	 * : PHP version for site. Currently only supports PHP 5.6, 7.0, 7.2, 7.3, 7.4, 8.0, 8.1 and latest.
 	 * ---
 	 * default: latest
 	 * options:
@@ -91,6 +91,7 @@ class PHP extends EE_Site_Command {
 	 *	- 7.3
 	 *	- 7.4
 	 *	- 8.0
+	 *	- 8.1
 	 *	- latest
 	 * ---
 	 *
@@ -179,7 +180,6 @@ class PHP extends EE_Site_Command {
 		$this->logger->debug( 'args:', $args );
 		$this->logger->debug( 'assoc_args:', empty( $assoc_args ) ? array( 'NULL' ) : $assoc_args );
 		$this->site_data['site_url']  = strtolower( \EE\Utils\remove_trailing_slash( $args[0] ) );
-		$this->site_data['subnet_ip'] = \EE\Site\Utils\get_available_subnet();
 
 		if ( Site::find( $this->site_data['site_url'] ) ) {
 			\EE::error( sprintf( "Site %1\$s already exists. If you want to re-create it please delete the older one using:\n`ee site delete %1\$s`", $this->site_data['site_url'] ) );
@@ -226,7 +226,7 @@ class PHP extends EE_Site_Command {
 		}
 		$this->site_data['alias_domains'] = substr( $this->site_data['alias_domains'], 0, - 1 );
 
-		$supported_php_versions = [ 5.6, 7.0, 7.2, 7.3, 7.4, 8.0, 'latest' ];
+		$supported_php_versions = [ 5.6, 7.0, 7.2, 7.3, 7.4, 8.0, 8.1, 'latest' ];
 		if ( ! in_array( $this->site_data['php_version'], $supported_php_versions ) ) {
 			$old_version = $this->site_data['php_version'];
 			$floor       = (int) floor( $this->site_data['php_version'] );
@@ -474,7 +474,7 @@ class PHP extends EE_Site_Command {
 
 			// Assign www-data user ownership.
 			chdir( $this->site_data['site_fs_path'] );
-			EE::exec( sprintf( 'docker-compose exec --user=root php chown -R www-data: %s', $this->site_data['site_container_fs_path'] ) );
+			\EE_DOCKER::docker_compose_exec( sprintf( 'chown -R www-data: %s', $this->site_data['site_container_fs_path'], 'php', 'bash', 'root' ) );
 
 			\EE::success( 'Configuration files copied.' );
 		} catch ( \Exception $e ) {
@@ -623,7 +623,6 @@ class PHP extends EE_Site_Command {
 		$filter['is_ssl']        = $this->site_data['site_ssl'];
 		$filter['php_version']   = ( string ) $this->site_data['php_version'];
 		$filter['alias_domains'] = implode( ',', array_diff( explode( ',', $this->site_data['alias_domains'] ), [ $this->site_data['site_url'] ] ) );
-		$filter['subnet_ip']     = $this->site_data['subnet_ip'];
 
 		if ( 'mysql' === $this->site_data['app_sub_type'] ) {
 			$filter[] = $this->site_data['db_host'];
@@ -845,7 +844,6 @@ class PHP extends EE_Site_Command {
 
 		$data = [
 			'site_url'               => $this->site_data['site_url'],
-			'subnet_ip'              => $this->site_data['subnet_ip'],
 			'site_type'              => $this->site_data['site_type'],
 			'app_admin_email'        => $this->site_data['app_admin_email'],
 			'cache_nginx_browser'    => (int) $this->cache_type,

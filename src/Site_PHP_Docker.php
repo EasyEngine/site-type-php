@@ -64,7 +64,8 @@ class Site_PHP_Docker {
 			$db['networks']     = $network_default;
 		}
 		// PHP configuration.
-		$php_image_key = ( 'latest' === $filters['php_version'] ? 'easyengine/php' : 'easyengine/php' . $filters['php_version'] );
+		$php_ver = ( '7.4' === $filters['php_version'] ?  '' : $filters['php_version'] );
+		$php_image_key = ( 'latest' === $filters['php_version'] ? 'easyengine/php8.2' : 'easyengine/php' . $php_ver );
 
 		$php['service_name'] = [ 'name' => 'php' ];
 		$php['image']        = [ 'name' => $php_image_key . ':' . $img_versions[ $php_image_key ] ];

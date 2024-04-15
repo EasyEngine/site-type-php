@@ -246,7 +246,7 @@ class PHP extends EE_Site_Command {
 			\EE::confirm( sprintf( 'EEv4 does not support PHP %s. Continue with PHP %s?', $old_version, $this->site_data['php_version'] ) );
 		}
 
-		$this->site_data['php_version'] = ( 7.4 === (double) $this->site_data['php_version'] ) ? 'latest' : $this->site_data['php_version'];
+		$this->site_data['php_version'] = ( 8.0 === (double) $this->site_data['php_version'] ) ? 'latest' : $this->site_data['php_version'];
 
 		if ( $this->cache_type && ! $local_cache ) {
 			\EE\Service\Utils\init_global_container( GLOBAL_REDIS );

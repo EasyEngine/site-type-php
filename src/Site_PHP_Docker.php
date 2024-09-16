@@ -24,11 +24,12 @@ class Site_PHP_Docker {
 		$restart_default = [ 'name' => 'always' ];
 		$network_default = [
 			'net' => [
-				[ 'name' => 'site-network' ],
+				[ 'name' => $filters['site_url'] ],
 			],
 		];
 
 		$network = [
+			'name'            => $filters['site_url'],
 			'networks_labels' => [
 				'label' => [
 					[ 'name' => 'org.label-schema.vendor=EasyEngine' ],
@@ -64,7 +65,7 @@ class Site_PHP_Docker {
 			$db['networks']     = $network_default;
 		}
 		// PHP configuration.
-		$php_image_key = ( 'latest' === $filters['php_version'] ? 'easyengine/php' : 'easyengine/php' . $filters['php_version'] );
+		$php_image_key = ( 'latest' === $filters['php_version'] ? 'easyengine/php8.2' : 'easyengine/php' . $filters['php_version'] );
 
 		$php['service_name'] = [ 'name' => 'php' ];
 		$php['image']        = [ 'name' => $php_image_key . ':' . $img_versions[ $php_image_key ] ];
@@ -101,7 +102,7 @@ class Site_PHP_Docker {
 		$php['networks']    = [
 			'net' => [
 				[
-					'name'    => 'site-network',
+					'name'    => $filters['site_url'],
 					'aliases' => [
 						'alias' => [
 							'name' => '${VIRTUAL_HOST}_php',
@@ -160,7 +161,7 @@ class Site_PHP_Docker {
 		$nginx['networks'] = [
 			'net' => [
 				[ 'name' => 'global-frontend-network' ],
-				[ 'name' => 'site-network' ],
+				[ 'name' => $filters['site_url'] ],
 			],
 		];
 		if ( in_array( GLOBAL_REDIS, $filters, true ) ) {
@@ -186,7 +187,7 @@ class Site_PHP_Docker {
 		];
 		$mailhog['networks']     = [
 			'net' => [
-				[ 'name' => 'site-network' ],
+				[ 'name' => $filters['site_url'] ],
 				[ 'name' => 'global-frontend-network' ],
 			],
 		];

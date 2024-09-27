@@ -476,7 +476,7 @@ class PHP extends EE_Site_Command {
 
 			// Assign www-data user ownership.
 			chdir( $this->site_data['site_fs_path'] );
-			\EE_DOCKER::docker_compose_exec( sprintf( 'chown -R www-data: %s', $this->site_data['site_container_fs_path'], 'php', 'bash', 'root' ) );
+			\EE_DOCKER::docker_compose_exec( 'chown -R www-data: /var/www/', 'php', 'bash', 'root' );
 
 			\EE::success( 'Configuration files copied.' );
 		} catch ( \Exception $e ) {

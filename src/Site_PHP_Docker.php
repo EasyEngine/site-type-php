@@ -254,8 +254,6 @@ class Site_PHP_Docker {
 				[ 'prefix' => $filters['site_prefix'], 'ext_vol_name' => 'db_conf' ],
 				[ 'prefix' => $filters['site_prefix'], 'ext_vol_name' => 'db_logs' ],
 			] );
-		} else {
-			$network['enable_backend_network'] = true;
 		}
 
 		$binding = [

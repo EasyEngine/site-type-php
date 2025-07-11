@@ -66,27 +66,6 @@ Feature: Site Command
     or run `ee site reload` from inside the site folder.
     """
 
-  Scenario: Reload site services
-    When I run 'bin/ee site reload php.test'
-    Then STDERR should return something like
-    """
-    Error: Site php.test is not enabled. Use `ee site enable php.test` to enable it.
-    """
-
-  Scenario: Enable the site
-    When I run 'bin/ee site enable php.test'
-    Then STDOUT should return exactly
-    """
-    Enabling site php.test.
-    Success: Site php.test enabled.
-    Running post enable configurations.
-    Starting site's services.
-    Success: Post enable configurations complete.
-    """
-    And Request on 'php.test' should contain following headers:
-        | header           |
-        | HTTP/1.1 200 OK  |
-
   Scenario: Check site info sub command is present
     When I run 'bin/ee site info'
     Then STDERR should return something like

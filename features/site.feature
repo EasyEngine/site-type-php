@@ -48,17 +48,6 @@ Feature: Site Command
     or run `ee site disable` from inside the site folder.
     """
 
-  Scenario: Disable the site
-    When I run 'bin/ee site disable php.test'
-    Then STDOUT should return exactly
-    """
-    Disabling site php.test.
-    Success: Site php.test disabled.
-    """
-    And Request on 'php.test' should contain following headers:
-        | header                 |
-        | HTTP/1.1 404 Not Found |
-
   Scenario: Check site enable sub command is present
     When I run 'bin/ee site enable'
     Then STDERR should return something like

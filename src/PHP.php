@@ -815,6 +815,11 @@ class PHP extends EE_Site_Command {
 				$this->maybe_verify_remote_db_connection();
 				$containers[] = 'db';
 			}
+
+			if ( $this->cache_type ) {
+				$containers[] = 'redis';
+			}
+
 			$this->level = 3;
 			$this->configure_site_files();
 
@@ -884,6 +889,82 @@ class PHP extends EE_Site_Command {
 			$this->catch_clean( $e );
 		}
 	}
+
+	/**
+	 * Update between site types.
+	 *
+	 * [<site-name>]
+	 * : Name of the site.
+	 *
+	 * [--ssl=<ssl>]
+	 * : Enable ssl on site
+	 *
+	 * [--cache]
+	 * : Enable cache on site
+	 *
+	 * [--wildcard]
+	 * : Enable wildcard SSL on site.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Add SSL to site
+	 *     $ ee site update example.com --ssl=le
+	 *
+	 *     # Enable cache on site
+	 *     $ ee site update example.com --cache
+	 *
+	 *     # Disable cache on site
+	 *     $ ee site update example.com --no-cache
+	 *
+	 */
+	public function update( $args, $assoc_args ) {
+		parent::update( $args, $assoc_args );
+
+		$args            = auto_site_name( $args, 'site', __FUNCTION__ );
+		$ssl             = $assoc_args['ssl'] ?? null;
+		$cache           = $assoc_args['cache'] ?? null;
+		$this->site_data = get_site_info( $args );
+		$site            = Site::find( $this->site_data['site_url'] );
+
+		if ( true === $cache || false === $cache ) {
+			if ( true === $cache ) {
+				if ( '1' === $site->cache_nginx_browser ) {
+					\EE::error( 'Site already has cache enabled' );
+				}
+				$this->cache_type = 'redis';
+				$filter[]         = 'redis';
+			} elseif ( false === $cache ) {
+				if ( '0' === $site->cache_nginx_browser ) {
+					\EE::error( 'Site already has cache disabled' );
+				}
+				$this->cache_type = false;
+			}
+
+			$filter[]                = $this->site_data['db_host'];
+			$server_name             = $this->site_data['site_url'];
+			$site_docker_yml         = $this->site_data['site_fs_path'] . '/docker-compose.yml';
+			$site_nginx_default_conf = $this->site_data['site_fs_path'] . '/config/nginx/main.conf';
+			$site_docker             = new Site_PHP_Docker();
+			$docker_compose_content  = $site_docker->generate_docker_compose_yml( $filter );
+			$default_conf_content    = $this->generate_default_conf( $this->cache_type, $server_name );
+
+			$this->fs->dumpFile( $site_docker_yml, $docker_compose_content );
+			$this->fs->dumpFile( $site_nginx_default_conf, $default_conf_content );
+			\EE::docker()::docker_compose_down( $this->site_data['site_fs_path'] );
+			\EE\Site\Utils\start_site_containers( $this->site_data['site_fs_path'] );
+
+			$site->cache_nginx_browser  = $cache;
+			$site->cache_nginx_fullpage = $cache;
+			$site->cache_mysql_query    = $cache;
+			$site->cache_app_object     = $cache;
+		}
+
+		$site->save();
+
+		\EE::success( 'Updated site ' . $this->site_data['site_ssl'] );
+		\EE\Utils\delem_log( 'site reload end' );
+	}
+
 
 	/**
 	 * Restarts containers associated with site.

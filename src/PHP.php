@@ -198,7 +198,7 @@ class PHP extends EE_Site_Command {
 		$this->site_data['site_fs_path']      = WEBROOT . $this->site_data['site_url'];
 		$this->cache_type                     = \EE\Utils\get_flag_value( $assoc_args, 'cache' );
 		$this->site_data['site_ssl_wildcard'] = \EE\Utils\get_flag_value( $assoc_args, 'wildcard' );
-		$this->site_data['php_version']       = \EE\Utils\get_flag_value( $assoc_args, 'php', 'latest' );
+		$this->site_data['php_version']       = \EE\Utils\get_flag_value( $assoc_args, 'php' );
 		$this->site_data['app_sub_type']      = 'php';
 
 		$this->site_data['site_container_fs_path'] = get_public_dir( $assoc_args );
@@ -247,8 +247,6 @@ class PHP extends EE_Site_Command {
 			}
 			\EE::confirm( sprintf( 'EEv4 does not support PHP %s. Continue with PHP %s?', $old_version, $this->site_data['php_version'] ) );
 		}
-
-		$this->site_data['php_version'] = ( 8.0 === (double) $this->site_data['php_version'] ) ? 'latest' : $this->site_data['php_version'];
 
 		if ( $this->cache_type && ! $local_cache ) {
 			\EE\Service\Utils\init_global_container( GLOBAL_REDIS );

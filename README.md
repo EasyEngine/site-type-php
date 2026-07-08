@@ -37,12 +37,21 @@ ee site create --type=php <site-name> [--cache] [--admin-email=<admin-email>]  [
 		Create separate db container instead of using global db.
 
 	[--php=<php-version>]
-		PHP version for site. Currently only supports PHP 5.6 and latest.
+		PHP version for site. Currently only supports PHP 5.6, 7.0, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, and latest.
 		---
-		default: latest
+		default: 8.4
 		options:
 			- 5.6
+			- 7.0
 			- 7.2
+			- 7.3
+			- 7.4
+			- 8.0
+			- 8.1
+			- 8.2
+			- 8.3
+			- 8.4
+			- 8.5
 			- latest
 		---
 
@@ -177,12 +186,21 @@ ee site info --type=php <site-name> [--cache] [--admin-email=<admin-email>]  [--
 		Create separate db container instead of using global db.
 
 	[--php=<php-version>]
-		PHP version for site. Currently only supports PHP 5.6 and latest.
+		PHP version for site. Currently only supports PHP 5.6, 7.0, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, and latest.
 		---
-		default: latest
+		default: 8.4
 		options:
 			- 5.6
+			- 7.0
 			- 7.2
+			- 7.3
+			- 7.4
+			- 8.0
+			- 8.1
+			- 8.2
+			- 8.3
+			- 8.4
+			- 8.5
 			- latest
 		---
 
@@ -401,12 +419,21 @@ ee site reload --type=php <site-name> [--cache] [--admin-email=<admin-email>]  [
 		Create separate db container instead of using global db.
 
 	[--php=<php-version>]
-		PHP version for site. Currently only supports PHP 5.6 and latest.
+		PHP version for site. Currently only supports PHP 5.6, 7.0, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, and latest.
 		---
-		default: latest
+		default: 8.4
 		options:
 			- 5.6
+			- 7.0
 			- 7.2
+			- 7.3
+			- 7.4
+			- 8.0
+			- 8.1
+			- 8.2
+			- 8.3
+			- 8.4
+			- 8.5
 			- latest
 		---
 
@@ -488,12 +515,21 @@ ee site restart --type=php <site-name> [--cache] [--admin-email=<admin-email>]  
 		Create separate db container instead of using global db.
 
 	[--php=<php-version>]
-		PHP version for site. Currently only supports PHP 5.6 and latest.
+		PHP version for site. Currently only supports PHP 5.6, 7.0, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, and latest.
 		---
-		default: latest
+		default: 8.4
 		options:
 			- 5.6
+			- 7.0
 			- 7.2
+			- 7.3
+			- 7.4
+			- 8.0
+			- 8.1
+			- 8.2
+			- 8.3
+			- 8.4
+			- 8.5
 			- latest
 		---
 

@@ -53,6 +53,11 @@ class PHP extends EE_Site_Command {
 	 */
 	private $force;
 
+	/**
+	 * @var bool $created_global_db Whether this run created the site's database and user on the global db.
+	 */
+	private $created_global_db = false;
+
 	public function __construct() {
 
 		parent::__construct();
@@ -242,6 +247,8 @@ class PHP extends EE_Site_Command {
 			\EE::confirm( sprintf( 'EEv4 does not support PHP %s. Continue with PHP %s?', $old_version, $this->site_data['php_version'] ) );
 		}
 
+		\EE\Site\Utils\check_site_name_conflicts( $this->site_data['site_url'], $this->site_data['site_fs_path'] );
+
 		if ( $this->cache_type && ! $local_cache ) {
 			\EE\Service\Utils\init_global_container( GLOBAL_REDIS );
 		}
@@ -251,10 +258,7 @@ class PHP extends EE_Site_Command {
 		$this->site_data['db_host'] = '';
 		if ( ! empty( $assoc_args['with-db'] ) ) {
 			$this->site_data['app_sub_type'] = 'mysql';
-			$this->site_data['db_name']      = \EE\Utils\get_flag_value( $assoc_args, 'dbname', str_replace( [
-				'.',
-				'-'
-			], '_', $this->site_data['site_url'] ) );
+			$this->site_data['db_name']      = \EE\Utils\get_flag_value( $assoc_args, 'dbname', \EE\Site\Utils\get_default_db_name( $this->site_data['site_url'] ) );
 			$this->site_data['db_host']      = \EE\Utils\get_flag_value( $assoc_args, 'dbhost', GLOBAL_DB );
 			$this->site_data['db_port']      = '3306';
 			$this->site_data['db_user']      = \EE\Utils\get_flag_value( $assoc_args, 'dbuser', $this->create_site_db_user( $this->site_data['site_url'] ) );
@@ -272,11 +276,13 @@ class PHP extends EE_Site_Command {
 
 			if ( GLOBAL_DB === $this->site_data['db_host'] ) {
 				\EE\Service\Utils\init_global_container( GLOBAL_DB );
+				$this->site_data['db_name'] = \EE\Site\Utils\reserve_global_db_names( $this->site_data['db_name'], $this->site_data['db_user'], ! empty( $assoc_args['dbname'] ) );
 				try {
 					$user_data = \EE\Site\Utils\create_user_in_db( GLOBAL_DB, $this->site_data['db_name'], $this->site_data['db_user'], $this->site_data['db_password'] );
 					if ( ! $user_data ) {
 						throw new \Exception( sprintf( 'Could not create user %s. Please check logs.', $this->site_data['db_user'] ) );
 					}
+					$this->created_global_db = true;
 				} catch ( \Exception $e ) {
 					$this->catch_clean( $e );
 				}
@@ -792,7 +798,6 @@ class PHP extends EE_Site_Command {
 	 */
 	private function create_site( $assoc_args ) {
 
-		$this->level = 1;
 		try {
 			if ( 'inherit' === $this->site_data['site_ssl'] ) {
 				$this->check_parent_site_certs( $this->site_data['site_url'] );
@@ -951,6 +956,24 @@ class PHP extends EE_Site_Command {
 
 
 	/**
+	 * Database and user a failed create may drop: only the ones this run created.
+	 *
+	 * @return array
+	 */
+	private function get_rollback_db_data() {
+
+		if ( ! $this->created_global_db ) {
+			return [];
+		}
+
+		return [
+			'db_host' => $this->site_data['db_host'],
+			'db_user' => $this->site_data['db_user'],
+			'db_name' => $this->site_data['db_name'],
+		];
+	}
+
+	/**
 	 * Catch and clean exceptions.
 	 *
 	 * @param \Exception $e
@@ -959,12 +982,7 @@ class PHP extends EE_Site_Command {
 		\EE\Utils\delem_log( 'site cleanup start' );
 		\EE::warning( $e->getMessage() );
 		\EE::warning( 'Initiating clean-up.' );
-		$db_data = ( empty( $this->site_data['db_host'] ) || 'db' === $this->site_data['db_host'] ) ? [] : [
-			'db_host' => $this->site_data['db_host'],
-			'db_user' => $this->site_data['db_user'],
-			'db_name' => $this->site_data['db_name'],
-		];
-		$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'], $db_data );
+		$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'], $this->get_rollback_db_data() );
 		\EE\Utils\delem_log( 'site cleanup end' );
 		\EE::log( 'Report bugs here: https://github.com/EasyEngine/site-type-php' );
 		exit( 1 );
@@ -975,13 +993,8 @@ class PHP extends EE_Site_Command {
 	 */
 	protected function rollback() {
 		\EE::warning( 'Exiting gracefully after rolling back. This may take some time.' );
-		if ( $this->level > 0 ) {
-			$db_data = ( empty( $this->site_data['db_host'] ) || 'db' === $this->site_data['db_host'] ) ? [] : [
-				'db_host' => $this->site_data['db_host'],
-				'db_user' => $this->site_data['db_user'],
-				'db_name' => $this->site_data['db_name'],
-			];
-			$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'], $db_data );
+		if ( $this->level > 0 || $this->created_global_db ) {
+			$this->delete_site( $this->level, $this->site_data['site_url'], $this->site_data['site_fs_path'], $this->get_rollback_db_data() );
 		}
 		\EE::success( 'Rollback complete. Exiting now.' );
 		exit( 1 );

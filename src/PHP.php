@@ -191,6 +191,10 @@ class PHP extends EE_Site_Command {
 		$this->logger->debug( 'args:', $args );
 		$this->logger->debug( 'assoc_args:', empty( $assoc_args ) ? array( 'NULL' ) : $assoc_args );
 		$this->site_data['site_url']  = strtolower( \EE\Utils\remove_trailing_slash( $args[0] ) );
+		// site-command's create router validates too; this guard keeps an older site-command working.
+		if ( function_exists( '\EE\Site\Utils\validate_site_name' ) ) {
+			\EE\Site\Utils\validate_site_name( $this->site_data['site_url'] );
+		}
 
 		if ( Site::find( $this->site_data['site_url'] ) ) {
 			\EE::error( sprintf( "Site %1\$s already exists. If you want to re-create it please delete the older one using:\n`ee site delete %1\$s`", $this->site_data['site_url'] ) );
@@ -704,14 +708,19 @@ class PHP extends EE_Site_Command {
 
 		\EE::log( 'Verifying connection to remote database' );
 
-		$check_db_connection = sprintf(
-			"docker exec %s sh -c \"mysql --host='%s' --port='%s' --user='%s' --password='%s' --execute='EXIT'\"",
-			$container_name,
-			$db_host,
-			$this->site_data['db_port'],
-			$this->site_data['db_user'],
-			$this->site_data['db_password']
+		// Each value is quoted for the shell inside the container, then the whole script for the host shell.
+		$db_args = sprintf(
+			'--host=%s --port=%s --user=%s --password=%s',
+			escapeshellarg( $db_host ),
+			escapeshellarg( $this->site_data['db_port'] ),
+			escapeshellarg( $this->site_data['db_user'] ),
+			escapeshellarg( $this->site_data['db_password'] )
 		);
+		$db_exec = function ( $shell, $script ) use ( $container_name ) {
+			return sprintf( 'docker exec %s %s -c %s', $container_name, $shell, escapeshellarg( $script ) );
+		};
+
+		$check_db_connection = $db_exec( 'sh', "mysql $db_args --execute='EXIT'" );
 		if ( ! \EE::exec( $check_db_connection ) ) {
 			\EE::exec( "docker rm -f $container_name" );
 			throw new \Exception( 'Unable to connect to remote db' );
@@ -719,19 +728,11 @@ class PHP extends EE_Site_Command {
 		\EE::success( 'Connection to remote db verified' );
 
 		$name            = str_replace( '_', '\_', $this->site_data['db_name'] );
-		$check_db_exists = sprintf( "docker exec %s bash -c \"mysqlshow --user='%s' --password='%s' --host='%s' --port='%s' '%s'\"", $container_name, $this->site_data['db_user'], $this->site_data['db_password'], $db_host, $this->site_data['db_port'], $name );
+		$check_db_exists = $db_exec( 'bash', "mysqlshow $db_args " . escapeshellarg( $name ) );
 
 		if ( ! \EE::exec( $check_db_exists ) ) {
 			\EE::log( sprintf( 'Database `%s` does not exist. Attempting to create it.', $this->site_data['db_name'] ) );
-			$create_db_command = sprintf(
-				"docker exec %s bash -c \"mysql --host='%s' --port='%s' --user='%s' --password='%s' --execute='CREATE DATABASE %s;'\"",
-				$container_name,
-				$db_host,
-				$this->site_data['db_port'],
-				$this->site_data['db_user'],
-				$this->site_data['db_password'],
-				$this->site_data['db_name']
-			);
+			$create_db_command = $db_exec( 'bash', "mysql $db_args --execute=" . escapeshellarg( 'CREATE DATABASE ' . $this->site_data['db_name'] . ';' ) );
 
 			if ( ! \EE::exec( $create_db_command ) ) {
 				\EE::exec( "docker rm -f $container_name" );
@@ -745,38 +746,10 @@ class PHP extends EE_Site_Command {
 			}
 		} else {
 			if ( $this->force ) {
-				\EE::exec(
-					sprintf(
-						"docker exec %s bash -c \"mysql --host='%s' --port='%s' --user='%s' --password='%s' --execute='DROP DATABASE %s;'\"",
-						$container_name,
-						$db_host,
-						$this->site_data['db_port'],
-						$this->site_data['db_user'],
-						$this->site_data['db_password'],
-						$this->site_data['db_name']
-					)
-				);
-				\EE::exec(
-					sprintf(
-						"docker exec %s bash -c \"mysql --host='%s' --port='%s' --user='%s' --password='%s' --execute='CREATE DATABASE %s;'\"",
-						$container_name,
-						$db_host,
-						$this->site_data['db_port'],
-						$this->site_data['db_user'],
-						$this->site_data['db_password'],
-						$this->site_data['db_name']
-					)
-				);
+				\EE::exec( $db_exec( 'bash', "mysql $db_args --execute=" . escapeshellarg( 'DROP DATABASE ' . $this->site_data['db_name'] . ';' ) ) );
+				\EE::exec( $db_exec( 'bash', "mysql $db_args --execute=" . escapeshellarg( 'CREATE DATABASE ' . $this->site_data['db_name'] . ';' ) ) );
 			}
-			$check_tables = sprintf(
-				"docker exec %s bash -c \"mysql --host='%s' --port='%s' --user='%s' --password='%s' --execute='USE %s; show tables;'\"",
-				$container_name,
-				$db_host,
-				$this->site_data['db_port'],
-				$this->site_data['db_user'],
-				$this->site_data['db_password'],
-				$this->site_data['db_name']
-			);
+			$check_tables = $db_exec( 'bash', "mysql $db_args --execute=" . escapeshellarg( 'USE ' . $this->site_data['db_name'] . '; show tables;' ) );
 
 			$launch = \EE::launch( $check_tables );
 			if ( ! $launch->return_code ) {

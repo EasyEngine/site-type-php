@@ -277,6 +277,10 @@ class PHP extends EE_Site_Command {
 			}
 
 			$this->site_data['db_root_password'] = ( 'db' === $this->site_data['db_host'] ) ? \EE\Utils\random_password() : '';
+			// Keeps the generated credentials out of the logged commands and their output.
+			if ( method_exists( 'EE', 'obfuscate' ) ) {
+				EE::obfuscate( [ $this->site_data['db_password'], $this->site_data['db_root_password'] ] );
+			}
 
 			if ( GLOBAL_DB === $this->site_data['db_host'] ) {
 				\EE\Service\Utils\init_global_container( GLOBAL_DB );
@@ -364,7 +368,8 @@ class PHP extends EE_Site_Command {
 		if ( 'json' === $format ) {
 			$site = (array) Site::find( $this->site_data['site_url'] );
 			$site = reset( $site );
-			EE::log( json_encode( $site ) );
+			// Printed for the user only: it holds the site's credentials.
+			EE::line( json_encode( $site ) );
 
 			return;
 		}

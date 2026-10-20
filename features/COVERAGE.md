@@ -43,8 +43,8 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | alias owned by another site / site name that is an alias | alias-domains.feature scenarios 4-5 |
 | alias trimming | alias-domains.feature "Spaces around alias domains are trimmed" |
 | alias that is an existing site | alias-domains.feature `@known-bug` (PHPT-7) |
-| blank alias entries | alias-domains.feature `@known-bug @destructive` (fixed in site-type-php #114; on develop it breaks the nginx-proxy config until the rollback) |
-| invalid alias names (AUTH-1) | alias-domains.feature outline `@known-bug` (3 examples; the one with a space is also `@destructive`) |
+| blank alias entries | alias-domains.feature `@destructive` regression (fixed by site-type-php #114, merged 2026-09-25; a regression breaks the nginx-proxy config until the rollback) |
+| invalid alias names (AUTH-1) | alias-domains.feature outline, regression (fixed by #114; 3 examples, the one with a space is also `@destructive`) |
 | `--public-dir` (relative, full path, nested, traversal sanitised, with cache, outside files not served) | public-dir.feature |
 | bare `--public-dir` | public-dir.feature `@known-bug` (PHPT-12) |
 | `--skip-status-check` | create.feature "--admin-email is stored and shown, --skip-status-check skips the HTTP probe" |
@@ -134,7 +134,7 @@ Estimated coverage: about 88% of the inventory items above (php-specific items: 
 
 ## Known bugs exercised (`@known-bug`, 24 scenarios incl. outline examples)
 
-Every `@known-bug` scenario asserts the correct behaviour, so it fails until the bug is fixed, and names its issues.md ID in a comment: SEC-1, AUTH-1 (+ blank aliases, both fixed in the unmerged site-type-php #114), DB-1 (2), MIG-16, CACHE-1, and the site-type-php section `PHPT-*` (cross-referenced with the site-type-wp `WPT-*` entries for the shared DB-name collision):
+Every `@known-bug` scenario asserts the correct behaviour, so it fails until the bug is fixed, and names its issues.md ID in a comment: SEC-1, DB-1 (2), MIG-16, CACHE-1, and the site-type-php section `PHPT-*` (cross-referenced with the site-type-wp `WPT-*` entries for the shared DB-name collision):
 
 | ID | Severity | Scenario(s) |
 |---|---|---|
@@ -160,7 +160,7 @@ Other notes from the code: `--php=latest` maps to the php8.4 image, not the newe
 - `@known-bug` (24): expected to fail until fixed; exclude with `--tags='~@known-bug'`.
 - `@le` (1): issues one Let's Encrypt certificate for `bh-site-type-php-1.ee4-test.rt.gw` (plus www) and deletes the site in the same scenario. The name is fixed, so more than 5 runs in a week hit LE's duplicate-certificate limit. Needs `le-mail` in config.yml (checked first: stdin is /dev/null, so ee can't prompt). On CI it runs against Pebble (`behat/ci/pebble-setup.sh`): the issuer check reads `EE_BEHAT_LE_ISSUER` and the DNS check `EE_BEHAT_LE_DNS_SERVER` (defaults: Let's Encrypt, 1.1.1.1).
 - `@le-real`: none; the `@le` scenario passes on Pebble.
-- `@destructive` (3): `update --proxy-cache` restarts the global nginx-proxy container (self-restoring); the blank-alias and space-alias known bugs render an invalid nginx-proxy config for the ~2 minutes until their create rolls back (proxy reloads for every site fail meanwhile).
+- `@destructive` (3): `update --proxy-cache` restarts the global nginx-proxy container (self-restoring); the blank-alias and space-alias regressions (fixed by #114, merged 2026-09-25; they passed on develop in https://github.com/mrrobot47/site-type-php/actions/runs/36099146918 and are regular scenarios since) would render an invalid nginx-proxy config for ~2 minutes if they regressed.
 - `@slow` (12): the PHP version matrix (one site per version).
 - `@security` (1): the SEC-1 payload (benign: `id>bhstpsec1` in the core root, removed after the scenario and by the cleanup).
 - `@remote`: none (no backups in this package).

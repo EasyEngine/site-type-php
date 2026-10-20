@@ -142,39 +142,55 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the site "bh-site-type-php-17.test" should not exist
     And the directory "/opt/easyengine/sites/bh-site-type-php-17.test" should not exist
 
-  # PHPT-1, data loss: create_user_in_db() fails on the existing database, and catch_clean() then runs
-  # cleanup_db() with the requested --dbname, dropping the OTHER site's database.
-  @known-bug
+  # PHPT-1: another site's --dbname is refused up front; the rollback only drops what the create itself made.
   Scenario: Reusing another site's --dbname fails without dropping that database
     Given a php site "bh-site-type-php-20.test" created with "--with-db --dbname=bh_stp_shared20 --dbuser=bh_stp_user20 --dbpass=Bh-Stp-Pass-20" exists
     And the global database "bh_stp_shared20" contains the table "bh_marker"
     When I run "bin/ee site create bh-site-type-php-21.test --type=php --with-db --dbname=bh_stp_shared20"
     Then the command should fail
+    And STDERR should contain "Database `bh_stp_shared20` is already used by site bh-site-type-php-20.test on the global database."
+    And the directory "/opt/easyengine/sites/bh-site-type-php-21.test" should not exist
     And the site "bh-site-type-php-21.test" should not exist
     And the global database "bh_stp_shared20" should contain the table "bh_marker"
     And the php service of site "bh-site-type-php-20.test" should be able to connect to the site database
 
-  # PHPT-3, data loss: same rollback path with --dbuser; cleanup_db_user() drops the other site's user.
-  # Own site 23 (not 20): the --dbname scenario above may already have dropped site 20's database.
-  @known-bug
+  # PHPT-3: another site's --dbuser is refused up front, so its user and password are untouched.
   Scenario: Reusing another site's --dbuser fails without dropping that user
     Given a php site "bh-site-type-php-23.test" created with "--with-db --dbname=bh_stp_db23 --dbuser=bh_stp_user23 --dbpass=Bh-Stp-Pass-23" exists
     When I run "bin/ee site create bh-site-type-php-24.test --type=php --with-db --dbuser=bh_stp_user23 --dbpass=Bh-Stp-Other-24"
     Then the command should fail
+    And STDERR should contain "Database user `bh_stp_user23` is already used by site bh-site-type-php-23.test on the global database."
+    And the global database "bh_site_type_php_24_test" should not exist
     And the site "bh-site-type-php-24.test" should not exist
     And the global database user "bh_stp_user23" should exist
     And the php service of site "bh-site-type-php-23.test" should be able to connect to the site database
 
-  # PHPT-2, data loss: the default db name replaces "." and "-" with "_", so these two names collide,
-  # and the failed second create drops the first site's database. The same pair also shares volume names (PHPT-4),
-  # so the second create is expected to fail even once PHPT-2 is fixed; only site 22.x's data is asserted.
-  @known-bug
+  # PHPT-2: the default db name replaces "." and "-" with "_", so these two names collide. The pair also shares volume
+  # names (PHPT-4), so the second create is refused before the database step.
   Scenario: Two site names that map to the same default db name do not destroy each other's database
     Given a php site "bh-site-type-php-22.x.test" created with "--with-db" exists
     And the global database "bh_site_type_php_22_x_test" contains the table "bh_marker"
     When I run "bin/ee site create bh-site-type-php-22-x.test --type=php --with-db"
-    Then the global database "bh_site_type_php_22_x_test" should contain the table "bh_marker"
+    Then the command should fail
+    And STDERR should contain "would share docker volumes (bhsitetypephp22xtest_*) with the existing site bh-site-type-php-22.x.test."
+    And the site "bh-site-type-php-22-x.test" should not exist
+    And the global database "bh_site_type_php_22_x_test" should contain the table "bh_marker"
     And the php service of site "bh-site-type-php-22.x.test" should be able to connect to the site database
+
+  # PHPT-2: a default db name that is already taken (here by a database no site owns) gets a numbered suffix.
+  Scenario: A taken default db name gets a numbered suffix and the existing database is kept
+    Given the global database "bh_site_type_php_28_test" with user "bh_stp_user28" identified by "Bh-Stp-Pass-28" exists
+    And the global database "bh_site_type_php_28_test" contains the table "bh_marker"
+    When I run "bin/ee site create bh-site-type-php-28.test --type=php --with-db"
+    Then the command should succeed
+    And STDOUT should contain "Database `bh_site_type_php_28_test` already exists, using `bh_site_type_php_28_test_2` instead."
+    And the site "bh-site-type-php-28.test" should have the field "db_name" set to "bh_site_type_php_28_test_2"
+    And the global database "bh_site_type_php_28_test" should contain the table "bh_marker"
+    And the php service of site "bh-site-type-php-28.test" should be able to connect to the site database
+    When I run "bin/ee site delete bh-site-type-php-28.test --yes"
+    Then the command should succeed
+    And the global database "bh_site_type_php_28_test_2" should not exist
+    And the global database "bh_site_type_php_28_test" should contain the table "bh_marker"
 
   Scenario: Deleting a global-db site drops its database and user
     Given a php site "bh-site-type-php-25.test" created with "--with-db --dbuser=bh_stp_user25 --dbpass=Bh-Stp-Pass-25" exists

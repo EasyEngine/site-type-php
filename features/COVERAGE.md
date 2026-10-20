@@ -30,7 +30,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `--skip-check` | database.feature "--skip-check creates the site without probing the remote db" (only proves the create and port parsing: nothing probes today, PHPT-5) |
 | remote DB verification / DB auto-create / non-empty DB check | database.feature "An unreachable remote db host fails the create" `@known-bug` (PHPT-5); DB auto-create and the non-empty-DB check: not covered, need a MariaDB reachable from the default bridge network (the verify container), which the test host doesn't provide |
 | `--force` (reset non-empty remote DB) | not covered: dead code today (PHPT-5), needs a reachable remote MariaDB |
-| DB name / user collisions on rollback | database.feature 3 `@known-bug` scenarios (PHPT-1, PHPT-3, PHPT-2), each on its own sites |
+| DB name / user collisions on rollback | database.feature: `--dbname`/`--dbuser` of another site refused (PHPT-1, PHPT-3), colliding default names refused by the volume check (PHPT-2), a taken default name gets a `_2` suffix, each on its own sites |
 | DB-1 (mysql CLI in php images vs MariaDB TLS) | database.feature 2 `@known-bug` scenarios |
 | `--php=<v>` every supported version + `latest` | php-version.feature outline (12 examples, `@slow`) |
 | `--php` default 8.4 | create.feature "The site row holds the php defaults", "The compose file ..." |
@@ -67,7 +67,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `.env`, `main.conf` (upstream, root, server_name, php vs redis blocks), `custom.ini`, `user.conf`, `admin-tools.conf`, `index.php`, `app/html` removed, `app` symlinked to the htdocs volume, `check.html` removed | create.feature "The site files are generated from the php templates" |
 | running containers (php, nginx, postfix; mailhog not started; + db/redis), labels, restart policy, networks | create.feature "The site containers, volumes and network are up", labels.feature, database/cache features |
 | docker volumes (8, or 11 with local db) and network labels | create.feature, labels.feature, database.feature |
-| volume prefix collision between names differing only in `.`/`-` | create.feature `@known-bug` (PHPT-4) |
+| volume prefix collision between names differing only in `.`/`-` | create.feature "A site name whose docker volumes collide with an existing site is refused" (PHPT-4) |
 | `/etc/hosts` entry (http and self-signed only) | create.feature, ssl.feature, alias-domains.feature |
 | HTTP: 200 + PHP executes, pretty URLs, 404, hidden/backup files denied, fpm ping/status, nginx_status | create.feature "The site is reachable over HTTP and runs PHP", "nginx denies hidden and backup files", "The php-fpm status and ping endpoints are wired" |
 
@@ -132,16 +132,13 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 
 Estimated coverage: about 88% of the inventory items above (php-specific items: about 95%; the gaps are the remote-DB verification paths that need a reachable remote MariaDB, `--force`, LE wildcard, and flags that share code paths with covered ones). Several items counted before only passed vacuously (`--ssl=off --wildcard`, the directory auto-detect, rollback, the redirect delete, the combo cache checks); they now assert the real behaviour.
 
-## Known bugs exercised (`@known-bug`, 24 scenarios incl. outline examples)
+## Known bugs exercised (`@known-bug`, 20 scenarios incl. outline examples)
 
 Every `@known-bug` scenario asserts the correct behaviour, so it fails until the bug is fixed, and names its issues.md ID in a comment: SEC-1, DB-1 (2), MIG-16, CACHE-1, and the site-type-php section `PHPT-*` (cross-referenced with the site-type-wp `WPT-*` entries for the shared DB-name collision):
 
 | ID | Severity | Scenario(s) |
 |---|---|---|
-| PHPT-1 | High (data loss) | database.feature "Reusing another site's --dbname fails without dropping that database" |
-| PHPT-2 | High (data loss) | database.feature "Two site names that map to the same default db name ..." (the pair also collides on volumes, PHPT-4) |
-| PHPT-3 | High (data loss) | database.feature "Reusing another site's --dbuser fails without dropping that user" |
-| PHPT-4 | High (data mixing) | create.feature "Two site names that differ only in dots and dashes get separate volumes" |
+| PHPT-1..4 | High | regular scenarios since the fixes on the `fix/site-name-collisions` branches of site-command and site-type-php (2026-09-26, local); they fail on develop until those are merged: database.feature "Reusing another site's --dbname ...", "Reusing another site's --dbuser ...", "Two site names that map to the same default db name ...", "A taken default db name gets a numbered suffix ..."; create.feature "A site name whose docker volumes collide with an existing site is refused" |
 | PHPT-5 | Medium | database.feature "An unreachable remote db host fails the create and rolls back" |
 | PHPT-6 | Medium | create.feature "--php=<version> without --type keeps the requested version" |
 | PHPT-7 | Medium | alias-domains.feature "An alias domain that is an existing site is refused on create" |
@@ -157,7 +154,7 @@ Other notes from the code: `--php=latest` maps to the php8.4 image, not the newe
 
 ## Tags
 
-- `@known-bug` (24): expected to fail until fixed; exclude with `--tags='~@known-bug'`.
+- `@known-bug` (20): expected to fail until fixed; exclude with `--tags='~@known-bug'`.
 - `@le` (1): issues one Let's Encrypt certificate for `bh-site-type-php-1.ee4-test.rt.gw` (plus www) and deletes the site in the same scenario. The name is fixed, so more than 5 runs in a week hit LE's duplicate-certificate limit. Needs `le-mail` in config.yml (checked first: stdin is /dev/null, so ee can't prompt). On CI it runs against Pebble (`behat/ci/pebble-setup.sh`): the issuer check reads `EE_BEHAT_LE_ISSUER` and the DNS check `EE_BEHAT_LE_DNS_SERVER` (defaults: Let's Encrypt, 1.1.1.1).
 - `@le-real`: none; the `@le` scenario passes on Pebble.
 - `@destructive` (3): `update --proxy-cache` restarts the global nginx-proxy container (self-restoring); the blank-alias and space-alias regressions (fixed by #114, merged 2026-09-25; they passed on develop in https://github.com/mrrobot47/site-type-php/actions/runs/36099146918 and are regular scenarios since) would render an invalid nginx-proxy config for ~2 minutes if they regressed.

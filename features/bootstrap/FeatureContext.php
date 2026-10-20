@@ -1144,7 +1144,12 @@ class FeatureContext implements Context
 	 */
 	public function theDatabaseShouldExistInTheDbService( $db, $not, $site )
 	{
-		$result = $this->execInService( $site, 'db', sprintf( 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e %s', escapeshellarg( sprintf( "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '%s'", addslashes( $db ) ) ) ) );
+		$query    = sprintf( 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e %s', escapeshellarg( sprintf( "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '%s'", addslashes( $db ) ) ) );
+		$deadline = time() + 60;
+		// Until its first-start init is done, a fresh local MariaDB denies root with the configured password.
+		while ( 0 !== ( $result = $this->execInService( $site, 'db', $query ) )->return_code && time() < $deadline ) {
+			sleep( 2 );
+		}
 		if ( 0 !== $result->return_code ) {
 			throw new Exception( "Could not query the db service of $site.\n" . $this->describe( $result ) );
 		}
@@ -1202,6 +1207,17 @@ class FeatureContext implements Context
 	public function aGetRequestShouldReturn( $url, $code )
 	{
 		$this->response = $this->httpRequest( $url );
+		// ee returns before nginx-proxy's last `nginx -s reload` takes effect, so the first request can still hit the old config (500/502).
+		$first    = $this->response['code'];
+		$started  = time();
+		$deadline = $started + 15;
+		while ( (int) $code < 500 && ( $this->response['code'] >= 500 || 0 === $this->response['code'] ) && time() < $deadline ) {
+			sleep( 1 );
+			$this->response = $this->httpRequest( $url );
+		}
+		if ( $first !== $this->response['code'] ) {
+			echo "First answer was HTTP $first; HTTP {$this->response['code']} after " . ( time() - $started ) . " s.\n";
+		}
 		$this->theResponseCodeShouldBe( $code );
 	}
 

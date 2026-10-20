@@ -204,13 +204,13 @@ Feature: Create a plain php site
     And the file "bhstpsec1" should not exist
 
   # PHPT-4, core EE_DOCKER::get_docker_style_prefix(): volume names drop "." and "-", so both names below map to
-  # the prefix bhsitetypephp81test. create_volumes() skips volumes that already exist, and the second site mounts the
+  # the prefix bhsitetypephp27test. create_volumes() skips volumes that already exist, and the second site mounts the
   # first site's htdocs/config volumes.
   @known-bug
   Scenario: Two site names that differ only in dots and dashes get separate volumes
-    Given a php site "bh-site-type-php-8-1.test" exists
-    When I run "bin/ee site create bh-site-type-php-81.test --type=php"
-    Then the site "bh-site-type-php-81.test" should have 8 docker volumes
-    And the site "bh-site-type-php-8-1.test" should have 8 docker volumes
-    And a GET request to "http://bh-site-type-php-8-1.test/" should return 200
-    And the response should contain "/opt/easyengine/sites/bh-site-type-php-8-1.test/app/htdocs"
+    Given a php site "bh-site-type-php-2-7.test" exists
+    When I run "bin/ee site create bh-site-type-php-27.test --type=php"
+    Then the site "bh-site-type-php-27.test" should have 8 docker volumes
+    And the site "bh-site-type-php-2-7.test" should have 8 docker volumes
+    And a GET request to "http://bh-site-type-php-2-7.test/" should return 200
+    And the response should contain "/opt/easyengine/sites/bh-site-type-php-2-7.test/app/htdocs"

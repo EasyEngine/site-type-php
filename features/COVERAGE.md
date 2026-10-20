@@ -110,7 +110,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `update --php` same version / invalid / `latest` / disabled / unknown site | php-version.feature 4 scenarios |
 | `update --add-alias-domains` / `--delete-alias-domains` (+ all error paths, wildcard) | alias-domains.feature 9 update scenarios |
 | `update --ssl=self` / `--ssl=off` / already enabled / already disabled / `--ssl=off --wildcard` (on a wildcard site) / normal to wildcard | ssl.feature 3 scenarios |
-| `update --ssl=off` on a site created with `--ssl=self` | ssl.feature `@known-bug` (PHPT-10) |
+| `update --ssl=off` on a site created with `--ssl=self` | ssl.feature "SSL of a site created with --ssl=self can be disabled" (PHPT-10, regular since site-command `fix/proxy-cache-rollback-and-le-alias`; fails on develop until merged) |
 | `update --ssl=le`, `--wildcard` | not covered (LE budget; wildcard needs DNS-01) |
 | `update --proxy-cache=on/off` (conf.d, vhost.d incl. alias, already-on error) | lifecycle.feature `@destructive` (restarts nginx-proxy) |
 | `--proxy-cache-max-size/-max-time/-key-zone-size` | not covered: site-command generic |
@@ -132,7 +132,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 
 Estimated coverage: about 88% of the inventory items above (php-specific items: about 95%; the gaps are the remote-DB verification paths that need a reachable remote MariaDB, `--force`, LE wildcard, and flags that share code paths with covered ones). Several items counted before only passed vacuously (`--ssl=off --wildcard`, the directory auto-detect, rollback, the redirect delete, the combo cache checks); they now assert the real behaviour.
 
-## Known bugs exercised (`@known-bug`, 20 scenarios incl. outline examples)
+## Known bugs exercised (`@known-bug`, 19 scenarios incl. outline examples)
 
 Every `@known-bug` scenario asserts the correct behaviour, so it fails until the bug is fixed, and names its issues.md ID in a comment: SEC-1, DB-1 (2), MIG-16, CACHE-1, and the site-type-php section `PHPT-*` (cross-referenced with the site-type-wp `WPT-*` entries for the shared DB-name collision):
 
@@ -144,7 +144,7 @@ Every `@known-bug` scenario asserts the correct behaviour, so it fails until the
 | PHPT-7 | Medium | alias-domains.feature "An alias domain that is an existing site is refused on create" |
 | PHPT-8 | Medium | cache.feature "ee site clean --page purges the php page cache in the global redis" |
 | PHPT-9 | Medium | cache.feature "ee site clean purges the page cache of a local-redis site" |
-| PHPT-10 | Medium | ssl.feature "SSL of a site created with --ssl=self can be disabled" |
+| PHPT-10 | Medium | regular since the SC-3 fix on site-command `fix/proxy-cache-rollback-and-le-alias` (2026-09-27, local); fails on develop until merged: ssl.feature "SSL of a site created with --ssl=self can be disabled" |
 | PHPT-11 | Low | create.feature outline "A --php value that only loosely matches ..." (4 examples) |
 | PHPT-12 | Low | public-dir.feature "A bare --public-dir without a value does not create the document root 1" |
 | PHPT-13 | Low | lifecycle.feature "site restart --db on a php site without a local db fails" |

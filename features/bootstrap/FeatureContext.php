@@ -610,7 +610,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^(STDOUT|STDERR) should( not)? contain:$/
+	 * @Then /^(STDOUT|STDERR) should( not|) contain:$/
 	 */
 	public function streamShouldContainBlock( $stream, $not, PyStringNode $text )
 	{
@@ -618,7 +618,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^(STDOUT|STDERR) should( not)? contain "([^"]*)"$/
+	 * @Then /^(STDOUT|STDERR) should( not|) contain "([^"]*)"$/
 	 */
 	public function streamShouldContainText( $stream, $not, $text )
 	{
@@ -739,7 +739,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the site "([^"]*)" should( not)? have the field "([^"]*)" set to "([^"]*)"$/
+	 * @Then /^the site "([^"]*)" should( not|) have the field "([^"]*)" set to "([^"]*)"$/
 	 */
 	public function theSiteShouldHaveFieldSetTo( $site, $not, $field, $value )
 	{
@@ -788,7 +788,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the (file|directory) "([^"]*)" should( not)? exist$/
+	 * @Then /^the (file|directory) "([^"]*)" should( not|) exist$/
 	 */
 	public function thePathShouldExist( $type, $path, $not )
 	{
@@ -811,7 +811,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the file "([^"]*)" should( not)? contain:$/
+	 * @Then /^the file "([^"]*)" should( not|) contain:$/
 	 */
 	public function theFileShouldContain( $path, $not, PyStringNode $text )
 	{
@@ -819,7 +819,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the file "([^"]*)" should( not)? contain "([^"]*)"$/
+	 * @Then /^the file "([^"]*)" should( not|) contain "([^"]*)"$/
 	 */
 	public function theFileShouldContainText( $path, $not, $text )
 	{
@@ -882,7 +882,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the "([^"]*)" service of site "([^"]*)" should( not)? be running$/
+	 * @Then /^the "([^"]*)" service of site "([^"]*)" should( not|) be running$/
 	 */
 	public function theServiceOfSiteShouldBeRunning( $service, $site, $not )
 	{
@@ -926,7 +926,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the docker network "([^"]*)" should( not)? exist$/
+	 * @Then /^the docker network "([^"]*)" should( not|) exist$/
 	 */
 	public function theDockerNetworkShouldExist( $network, $not )
 	{
@@ -949,7 +949,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the "([^"]*)" service of site "([^"]*)" should( not)? be attached to the docker network "([^"]*)"$/
+	 * @Then /^the "([^"]*)" service of site "([^"]*)" should( not|) be attached to the docker network "([^"]*)"$/
 	 */
 	public function theServiceShouldBeAttachedToNetwork( $service, $site, $not, $network )
 	{
@@ -1012,7 +1012,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the "([^"]*)" service of site "([^"]*)" should( not)? have been restarted$/
+	 * @Then /^the "([^"]*)" service of site "([^"]*)" should( not|) have been restarted$/
 	 */
 	public function theServiceShouldHaveBeenRestarted( $service, $site, $not )
 	{
@@ -1041,7 +1041,7 @@ class FeatureContext implements Context
 	/**
 	 * Connects the way site code would (mysqli), with the credentials ee stored for the site.
 	 *
-	 * @Then /^the php service of site "([^"]*)" should( not)? be able to connect to the site database$/
+	 * @Then /^the php service of site "([^"]*)" should( not|) be able to connect to the site database$/
 	 */
 	public function thePhpServiceShouldConnectToTheSiteDatabase( $site, $not )
 	{
@@ -1071,7 +1071,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the global database "([^"]*)" should( not)? exist$/
+	 * @Then /^the global database "([^"]*)" should( not|) exist$/
 	 */
 	public function theGlobalDatabaseShouldExist( $db, $not )
 	{
@@ -1083,7 +1083,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the global database user "([^"]*)" should( not)? exist$/
+	 * @Then /^the global database user "([^"]*)" should( not|) exist$/
 	 */
 	public function theGlobalDatabaseUserShouldExist( $user, $not )
 	{
@@ -1128,7 +1128,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the global database "([^"]*)" should( not)? contain the table "([^"]*)"$/
+	 * @Then /^the global database "([^"]*)" should( not|) contain the table "([^"]*)"$/
 	 */
 	public function theGlobalDatabaseShouldContainTheTable( $db, $not, $table )
 	{
@@ -1140,7 +1140,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the database "([^"]*)" should( not)? exist in the db service of site "([^"]*)"$/
+	 * @Then /^the database "([^"]*)" should( not|) exist in the db service of site "([^"]*)"$/
 	 */
 	public function theDatabaseShouldExistInTheDbService( $db, $not, $site )
 	{
@@ -1155,7 +1155,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the global redis should( not)? have keys matching "([^"]*)"$/
+	 * @Then /^the global redis should( not|) have keys matching "([^"]*)"$/
 	 */
 	public function theGlobalRedisShouldHaveKeysMatching( $not, $pattern )
 	{
@@ -1164,7 +1164,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the redis service of site "([^"]*)" should( not)? have keys matching "([^"]*)"$/
+	 * @Then /^the redis service of site "([^"]*)" should( not|) have keys matching "([^"]*)"$/
 	 */
 	public function theSiteRedisShouldHaveKeysMatching( $site, $not, $pattern )
 	{
@@ -1206,7 +1206,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^a GET request to "([^"]*)" via "([^"]*)" should( not)? return (\d{3})$/
+	 * @Then /^a GET request to "([^"]*)" via "([^"]*)" should( not|) return (\d{3})$/
 	 */
 	public function aGetRequestViaShouldReturn( $url, $ip, $not, $code )
 	{
@@ -1269,7 +1269,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the response should( not)? contain "([^"]*)"$/
+	 * @Then /^the response should( not|) contain "([^"]*)"$/
 	 */
 	public function theResponseShouldContain( $not, $text )
 	{
@@ -1280,7 +1280,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the response header "([^"]*)" should( not)? contain "([^"]*)"$/
+	 * @Then /^the response header "([^"]*)" should( not|) contain "([^"]*)"$/
 	 */
 	public function theResponseHeaderShouldContain( $header, $not, $text )
 	{
@@ -1292,7 +1292,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the response should( not)? have the header "([^"]*)"$/
+	 * @Then /^the response should( not|) have the header "([^"]*)"$/
 	 */
 	public function theResponseShouldHaveTheHeader( $not, $header )
 	{
@@ -1373,7 +1373,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * @Then /^the hosts file should( not)? have an entry for "([^"]*)"$/
+	 * @Then /^the hosts file should( not|) have an entry for "([^"]*)"$/
 	 */
 	public function theHostsFileShouldHaveAnEntryFor( $not, $host )
 	{

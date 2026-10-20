@@ -191,14 +191,14 @@ Feature: Create a plain php site
     And the site "bh-site-type-php-6.test" should have the field "site_type" set to "php"
     And the site "bh-site-type-php-6.test" should have the field "php_version" set to "8.3"
 
-  # SEC-1: the site name reaches shell sinks unescaped. Benign payload: touches ./bhstpsec1 in the working directory.
+  # SEC-1: the site name reaches shell sinks unescaped (volume commands run from the core root). Benign payload that
+  # survives the lowercasing: writes ./bhstpsec1 there, which the scenario cleanup removes.
   @known-bug @security
   Scenario: A site name with shell syntax is rejected and never executed
-    When I run "bin/ee site create 'bh-site-type-php-5$(touch${IFS}bhstpsec1).test' --type=php"
+    When I run "bin/ee site create 'bh-site-type-php-5$(id>bhstpsec1).test' --type=php"
     Then the command should fail
     And STDERR should contain "Invalid site name"
     And the file "bhstpsec1" should not exist
-    And the file "/opt/easyengine/sites/bh-site-type-php-5$(touch${IFS}bhstpsec1).test/bhstpsec1" should not exist
 
   # New (suspected), core EE_DOCKER::get_docker_style_prefix(): volume names drop "." and "-", so both names below map to
   # the prefix bhsitetypephp81test. create_volumes() skips volumes that already exist, and the second site mounts the

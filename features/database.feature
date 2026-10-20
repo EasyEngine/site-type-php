@@ -153,14 +153,15 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the php service of site "bh-site-type-php-20.test" should be able to connect to the site database
 
   # New (suspected), data loss: same rollback path with --dbuser; cleanup_db_user() drops the other site's user.
+  # Own site 23 (not 20): the --dbname scenario above may already have dropped site 20's database.
   @known-bug
   Scenario: Reusing another site's --dbuser fails without dropping that user
-    Given a php site "bh-site-type-php-20.test" created with "--with-db --dbname=bh_stp_shared20 --dbuser=bh_stp_user20 --dbpass=Bh-Stp-Pass-20" exists
-    When I run "bin/ee site create bh-site-type-php-24.test --type=php --with-db --dbuser=bh_stp_user20 --dbpass=Bh-Stp-Other-24"
+    Given a php site "bh-site-type-php-23.test" created with "--with-db --dbname=bh_stp_db23 --dbuser=bh_stp_user23 --dbpass=Bh-Stp-Pass-23" exists
+    When I run "bin/ee site create bh-site-type-php-24.test --type=php --with-db --dbuser=bh_stp_user23 --dbpass=Bh-Stp-Other-24"
     Then the command should fail
     And the site "bh-site-type-php-24.test" should not exist
-    And the global database user "bh_stp_user20" should exist
-    And the php service of site "bh-site-type-php-20.test" should be able to connect to the site database
+    And the global database user "bh_stp_user23" should exist
+    And the php service of site "bh-site-type-php-23.test" should be able to connect to the site database
 
   # New (suspected), data loss: the default db name replaces "." and "-" with "_", so these two names collide,
   # and the failed second create drops the first site's database.

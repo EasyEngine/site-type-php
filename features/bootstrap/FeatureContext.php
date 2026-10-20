@@ -490,6 +490,20 @@ class FeatureContext implements Context
 	 */
 	public static function prepareSuite( BeforeSuiteScope $scope )
 	{
+		// Volume prefixes drop "." and "-" and default db names map them to "_" (PHPT-1..4), and the create rollback drops
+		// colliding databases and users. Refuse to run next to a foreign site whose volumes, db or db user could collide.
+		foreach ( self::sqliteRows( 'SELECT site_url, db_name, db_user FROM sites' ) as $row ) {
+			if ( 1 === preg_match( self::SITE_PATTERN, $row['site_url'] ) ) {
+				continue;
+			}
+			$collides = 0 === strpos( str_replace( [ '.', '-' ], '', $row['site_url'] ), 'bhsitetypephp' )
+				|| 0 === strpos( str_replace( [ '.', '-' ], '_', $row['site_url'] ), 'bh_site_type_php_' )
+				|| 1 === preg_match( '/^(bh_stp_|bh_site_type_php_)/', (string) $row['db_name'] )
+				|| 1 === preg_match( '/^(bh_stp_|bh-site-type-php-)/', (string) $row['db_user'] );
+			if ( $collides ) {
+				throw new Exception( "Refusing to run: the volumes or database of site {$row['site_url']} could collide with this suite's names." );
+			}
+		}
 		self::cleanupTestState();
 		if ( ! is_dir( self::TMP_DIR ) ) {
 			mkdir( self::TMP_DIR, 0700, true );
@@ -1063,6 +1077,7 @@ class FeatureContext implements Context
 	 */
 	public function theGlobalDatabaseWithUserExists( $db, $user, $password )
 	{
+		self::assertSuiteDbNames( $db, $user );
 		$sql = sprintf(
 			"CREATE DATABASE IF NOT EXISTS `%1\$s`; CREATE USER IF NOT EXISTS '%2\$s'@'%%' IDENTIFIED BY '%3\$s'; GRANT ALL PRIVILEGES ON `%1\$s`.* TO '%2\$s'@'%%'; FLUSH PRIVILEGES;",
 			str_replace( '`', '', $db ),
@@ -1077,6 +1092,7 @@ class FeatureContext implements Context
 	 */
 	public function theGlobalDatabaseUserExists( $user, $password )
 	{
+		self::assertSuiteDbNames( null, $user );
 		self::globalDbQuery( sprintf( "CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED BY '%s'; FLUSH PRIVILEGES;", addslashes( $user ), addslashes( $password ) ), true );
 	}
 
@@ -1085,6 +1101,7 @@ class FeatureContext implements Context
 	 */
 	public function theGlobalDatabaseContainsTheTable( $db, $table )
 	{
+		self::assertSuiteDbNames( $db, null );
 		self::globalDbQuery( sprintf( 'CREATE TABLE IF NOT EXISTS `%s`.`%s` (id INT PRIMARY KEY)', str_replace( '`', '', $db ), str_replace( '`', '', $table ) ), true );
 	}
 
@@ -1677,6 +1694,19 @@ class FeatureContext implements Context
 		}
 	}
 
+	/**
+	 * Setup steps write to global-db as root: keep them on the suite's own names.
+	 */
+	private static function assertSuiteDbNames( $db, $user )
+	{
+		if ( null !== $db && 1 !== preg_match( '/^(bh_stp_|bh_site_type_php_)[A-Za-z0-9_]+$/', $db ) ) {
+			throw new Exception( "Refusing to touch the database $db: not a name of this suite." );
+		}
+		if ( null !== $user && 1 !== preg_match( '/^(bh_stp_[A-Za-z0-9_]+|bh-site-type-php-[A-Za-z0-9.-]+)$/', $user ) ) {
+			throw new Exception( "Refusing to touch the database user $user: not a name of this suite." );
+		}
+	}
+
 	private static function globalDbQuery( $sql, $throw = false )
 	{
 		$script = 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e ' . escapeshellarg( $sql );
@@ -1829,7 +1859,8 @@ class FeatureContext implements Context
 		// Site roots and proxy files left by failed creates.
 		foreach ( (array) glob( EE_SITE_ROOT . '/*' ) as $dir ) {
 			$name = basename( $dir );
-			if ( 1 === preg_match( '/^[a-z0-9.-]+$/', $name ) && $orphan( $name ) ) {
+			// Any name, so a dir left by the SEC-1 scenario's `$(...)` site name goes too.
+			if ( $orphan( $name ) ) {
 				self::run( 'rm -rf -- ' . escapeshellarg( $dir ) );
 			}
 		}
@@ -1848,8 +1879,12 @@ class FeatureContext implements Context
 			self::run( 'docker exec ' . self::PROXY_CONTAINER . ' sh -c ' . escapeshellarg( 'nginx -t && nginx -s reload' ) );
 		}
 
-		// Global-db databases and users created by the suite.
+		// Global-db databases and users created by the suite. Names still referenced by any remaining site row (another
+		// site, or a suite site whose delete failed) are never dropped, whatever their prefix.
 		if ( 0 === self::run( 'docker inspect ' . self::GLOBAL_DB_CONTAINER )->return_code ) {
+			$in_use     = self::sqliteRows( "SELECT db_name, db_user FROM sites WHERE db_name != '' OR db_user != ''" );
+			$used_dbs   = array_filter( array_column( $in_use, 'db_name' ), 'strlen' );
+			$used_users = array_filter( array_column( $in_use, 'db_user' ), 'strlen' );
 			$where_db   = implode( ' OR ', array_map( function ( $like ) {
 				return "schema_name LIKE '$like'";
 			}, self::DB_NAME_LIKE ) );
@@ -1857,19 +1892,52 @@ class FeatureContext implements Context
 				return "user LIKE '$like'";
 			}, self::DB_USER_LIKE ) );
 			foreach ( array_filter( explode( "\n", self::globalDbQuery( "SELECT schema_name FROM information_schema.schemata WHERE $where_db" )->stdout ) ) as $db ) {
-				self::globalDbQuery( sprintf( 'DROP DATABASE IF EXISTS `%s`', trim( $db ) ) );
+				$db = trim( $db );
+				if ( '' !== $db && ! in_array( $db, $used_dbs, true ) && false === strpos( $db, '`' ) ) {
+					self::globalDbQuery( sprintf( 'DROP DATABASE IF EXISTS `%s`', $db ) );
+				}
 			}
 			foreach ( array_filter( explode( "\n", self::globalDbQuery( "SELECT CONCAT(user, '@', host) FROM mysql.user WHERE $where_user" )->stdout ) ) as $user_host ) {
-				list( $user, $host ) = explode( '@', trim( $user_host ), 2 );
-				self::globalDbQuery( sprintf( "DROP USER IF EXISTS '%s'@'%s'", addslashes( $user ), addslashes( $host ) ) );
+				list( $user, $host ) = array_pad( explode( '@', trim( $user_host ), 2 ), 2, '' );
+				if ( '' !== $user && ! in_array( $user, $used_users, true ) ) {
+					self::globalDbQuery( sprintf( "DROP USER IF EXISTS '%s'@'%s'", addslashes( $user ), addslashes( $host ) ) );
+				}
 			}
 		}
 
-		// Hosts entries for this suite's names (ee's own and the ones added by `the hosts file maps ...`).
+		// Page-cache keys of the suite's sites live for 4 hours and would let a later run's cache checks pass on old keys.
+		if ( 0 === self::run( 'docker inspect ' . self::GLOBAL_REDIS_CONTAINER )->return_code ) {
+			foreach ( [ 'bh-site-type-php-*', 'behat-bh-site-type-php-*' ] as $pattern ) {
+				$script = sprintf( 'redis-cli --scan --pattern %s | while IFS= read -r k; do redis-cli del "$k" >/dev/null; done', escapeshellarg( $pattern ) );
+				self::run( sprintf( 'docker exec %s sh -c %s', self::GLOBAL_REDIS_CONTAINER, escapeshellarg( $script ) ) );
+			}
+		}
+
+		// The SEC-1 payload can run again when that site is deleted above.
+		if ( file_exists( EE_ROOT . '/bhstpsec1' ) ) {
+			unlink( EE_ROOT . '/bhstpsec1' );
+		}
+
+		// Hosts entries for this suite's names (ee's own and the ones added by `the hosts file maps ...`). A line is only
+		// dropped when every host name on it belongs to the suite.
 		if ( is_writable( '/etc/hosts' ) ) {
 			$hosts = file_get_contents( '/etc/hosts' );
 			$kept  = array_filter( explode( "\n", $hosts ), function ( $line ) {
-				return false === strpos( $line, self::HOSTS_MARKER ) && false === strpos( $line, 'bh-site-type-php-' );
+				if ( false !== strpos( $line, self::HOSTS_MARKER ) ) {
+					return false;
+				}
+				$fields = preg_split( '/\s+/', trim( preg_replace( '/#.*/', '', $line ) ) );
+				$names  = array_slice( $fields, 1 );
+				if ( empty( $names ) ) {
+					return true;
+				}
+				foreach ( $names as $name ) {
+					if ( 1 !== preg_match( self::SITE_PATTERN, $name ) ) {
+						return true;
+					}
+				}
+
+				return false;
 			} );
 			$new   = implode( "\n", $kept );
 			if ( rtrim( $new, "\n" ) !== rtrim( $hosts, "\n" ) ) {

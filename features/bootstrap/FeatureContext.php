@@ -1351,6 +1351,16 @@ class FeatureContext implements Context
 	}
 
 	/**
+	 * CI runs @le against Pebble and sets EE_BEHAT_LE_ISSUER to its intermediate CN.
+	 *
+	 * @Then the certificate served for :host should be issued by the ACME CA
+	 */
+	public function theCertificateServedShouldBeIssuedByTheAcmeCa( $host )
+	{
+		$this->theCertificateServedShouldBeIssuedBy( $host, getenv( 'EE_BEHAT_LE_ISSUER' ) ?: "Let's Encrypt" );
+	}
+
+	/**
 	 * @Then the certificate served for :host should be issued by :issuer
 	 */
 	public function theCertificateServedShouldBeIssuedBy( $host, $issuer )
@@ -1387,11 +1397,14 @@ class FeatureContext implements Context
 	}
 
 	/**
+	 * EE_BEHAT_LE_DNS_SERVER overrides the resolver (CI points the test names at Pebble's DNS).
+	 *
 	 * @Given the domain :domain resolves publicly
 	 */
 	public function theDomainResolvesPublicly( $domain )
 	{
-		$result = self::run( 'dig +short ' . escapeshellarg( $domain ) . ' @1.1.1.1' );
+		$server = getenv( 'EE_BEHAT_LE_DNS_SERVER' ) ?: '1.1.1.1';
+		$result = self::run( 'dig +short ' . escapeshellarg( $domain ) . ' ' . escapeshellarg( '@' . $server ) );
 		if ( '' === trim( $result->stdout ) ) {
 			throw new Exception( "$domain does not resolve publicly; Let's Encrypt scenarios need the ee4-test.rt.gw DNS records." );
 		}

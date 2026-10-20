@@ -142,7 +142,7 @@ Feature: SSL on php sites (create --ssl=self|custom|inherit|le, update --ssl)
     And I wait until a GET request to "https://bh-site-type-php-1.ee4-test.rt.gw/" returns 200 within 60 seconds
     And a GET request to "https://bh-site-type-php-1.ee4-test.rt.gw/" with certificate verification should return 200
     And the response should contain "Congratulations!"
-    And the certificate served for "bh-site-type-php-1.ee4-test.rt.gw" should be issued by "Let's Encrypt"
+    And the certificate served for "bh-site-type-php-1.ee4-test.rt.gw" should be issued by the ACME CA
     And a GET request to "http://bh-site-type-php-1.ee4-test.rt.gw/" should return 301
     When I run "bin/ee site delete bh-site-type-php-1.ee4-test.rt.gw --yes"
     Then the command should succeed

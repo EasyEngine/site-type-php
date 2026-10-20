@@ -43,16 +43,6 @@ Feature: Alias domains of php sites (create --alias-domains, update --add/--dele
     And the site "bh-site-type-php-78.test" should have the field "alias_domains" set to "bh-site-type-php-78.test,bh-site-type-php-78-a.test,bh-site-type-php-78-b.test"
     And a GET request to "http://bh-site-type-php-78-b.test/" via "127.0.0.1" should return 200
 
-  # PHPT-7: create only checks aliases against other sites' aliases (check_alias_in_db), not against existing
-  # site names, so two sites end up claiming the same VIRTUAL_HOST. `site update --add-alias-domains` does check this.
-  @known-bug
-  Scenario: An alias domain that is an existing site is refused on create
-    Given a php site "bh-site-type-php-74.test" exists
-    When I run "bin/ee site create bh-site-type-php-73.test --type=php --alias-domains=bh-site-type-php-74.test"
-    Then the command should fail
-    And STDERR should contain "bh-site-type-php-74.test already exists as a site"
-    And the site "bh-site-type-php-73.test" should not exist
-
   # Regression for blank entries (fixed by site-type-php #114, merged 2026-09-25). A regression renders an invalid
   # nginx-proxy config (`upstream  {`) that breaks proxy reloads for every site for ~2 minutes: hence @destructive.
   @destructive

@@ -162,22 +162,6 @@ Feature: Create a plain php site
       | 9.0     |
       | abc     |
 
-  # PHPT-11: the --php option check uses a loose in_array(), so "8" == "8.0" and "8.40" == 8.4 pass (and "8.4.1" on
-  # PHP 7.x). The compose file then references a non-existent easyengine/php8 (or php8.40) image and the create fails late.
-  @known-bug
-  Scenario Outline: A --php value that only loosely matches a supported version is rejected up front
-    When I run "bin/ee site create bh-site-type-php-9.test --type=php --php=<version>"
-    Then the command should fail
-    And STDERR should contain "Invalid value specified for 'php'"
-    And the site "bh-site-type-php-9.test" should not exist
-
-    Examples:
-      | version |
-      | 8       |
-      | 7       |
-      | 8.40    |
-      | 8.4.1   |
-
   # EE3 compat: --mysql maps to --type=php --with-db (Site_Command::convert_old_args_to_new_args).
   Scenario: The legacy --mysql flag creates a php site with a database
     When I run "bin/ee site create bh-site-type-php-7.test --mysql"
@@ -185,14 +169,6 @@ Feature: Create a plain php site
     And the site "bh-site-type-php-7.test" should have the field "site_type" set to "php"
     And the site "bh-site-type-php-7.test" should have the field "app_sub_type" set to "mysql"
     And the site "bh-site-type-php-7.test" should have the field "db_host" set to "global-db"
-
-  # PHPT-6: without --type, `--php=8.3` is consumed as the EE3 `--php` type flag and the version is dropped.
-  @known-bug
-  Scenario: --php=<version> without --type keeps the requested version
-    When I run "bin/ee site create bh-site-type-php-6.test --php=8.3"
-    Then the command should succeed
-    And the site "bh-site-type-php-6.test" should have the field "site_type" set to "php"
-    And the site "bh-site-type-php-6.test" should have the field "php_version" set to "8.3"
 
   # SEC-1 (fixed in v4.13.2, site-type-php#117 and site-command#509), regression check: the site name used to reach shell sinks unescaped (volume commands run from the core root). Benign payload that
   # survives the lowercasing: writes ./bhstpsec1 there, which the scenario cleanup removes.

@@ -18,7 +18,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `--cache` (global redis) | cache.feature scenarios 1-4 (DB flags, main.conf, networks, HIT from redis, BYPASS on query string) |
 | `--with-local-redis` (with `--cache`) | cache.feature "--cache --with-local-redis", "Pages of a local-redis site", "Local redis and global db", "Local db and local redis" |
 | `--with-local-redis` without `--cache` (ignored) | cache.feature "--with-local-redis without --cache enables no cache" |
-| local redis restart policy (MIG-16) | cache.feature `@known-bug` |
+| local redis restart policy | not covered yet: the local redis service has no restart policy, unlike every other service (its scenario comes back with the fix) |
 | `--admin-email` (and default `admin@<site>`) | create.feature "--admin-email is stored and shown", "The site row holds the php defaults" |
 | `--with-db` global db (DB/user created, creds stored, php connects) | database.feature scenarios 1-2 |
 | `--dbname` / `--dbuser` / `--dbpass` on global db | database.feature "--dbname, --dbuser and --dbpass are used for the global db" |
@@ -28,25 +28,25 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | remote `--dbhost=host:port` with credentials | database.feature "A remote --dbhost with host:port and existing credentials" (uses `global-db:3306` as the "remote") |
 | remote `--dbhost` needs `--dbuser` and `--dbpass` | database.feature "A remote --dbhost needs --dbuser and --dbpass" |
 | `--skip-check` | database.feature "--skip-check creates the site without probing the remote db" (only proves the create and port parsing: nothing probes today, PHPT-5) |
-| remote DB verification / DB auto-create / non-empty DB check | database.feature "An unreachable remote db host fails the create" `@known-bug` (PHPT-5); DB auto-create and the non-empty-DB check: not covered, need a MariaDB reachable from the default bridge network (the verify container), which the test host doesn't provide |
+| remote DB verification / DB auto-create / non-empty DB check | not covered yet: remote credentials are never checked, so an unreachable remote db host doesn't fail the create (its scenario comes back with the fix); DB auto-create and the non-empty-DB check: not covered, need a MariaDB reachable from the default bridge network (the verify container), which the test host doesn't provide |
 | `--force` (reset non-empty remote DB) | not covered: dead code today (PHPT-5), needs a reachable remote MariaDB |
 | DB name / user collisions on rollback | database.feature: `--dbname`/`--dbuser` of another site refused (PHPT-1, PHPT-3), colliding default names refused by the volume check (PHPT-2), a taken default name gets a `_2` suffix, each on its own sites |
-| DB-1 (mysql CLI in php images vs MariaDB TLS) | database.feature 2 `@known-bug` scenarios |
+| mysql CLI in the php container against the global and local db | not covered yet: the MariaDB client in php8.2+ images demands TLS, which the EasyEngine MariaDB doesn't offer (its 2 scenarios come back with the fix) |
 | `--php=<v>` every supported version + `latest` | php-version.feature outline (12 examples, `@slow`) |
 | `--php` default 8.4 | create.feature "The site row holds the php defaults", "The compose file ..." |
 | `--php` invalid values | create.feature outline "An unsupported --php value is rejected" (4 examples) |
-| `--php` loosely matching values (`8`, `7`, `8.40`, `8.4.1`) | create.feature outline `@known-bug` (PHPT-11; `8.4.1` only passes validation on PHP 7) |
-| `--php=<v>` without `--type` (EE3 compat mapping) | create.feature `@known-bug` (PHPT-6) |
+| `--php` loosely matching values (`8`, `7`, `8.40`, `8.4.1`) | not covered yet: a loose `in_array()` accepts them and the create fails late on a missing image (its outline, 4 examples, comes back with the fix) |
+| `--php=<v>` without `--type` (EE3 compat mapping) | not covered yet: the version is consumed as the EE3 `--php` type flag and dropped (its scenario comes back with the fix) |
 | EE3 `--mysql` compat flag | create.feature "The legacy --mysql flag creates a php site with a database" |
 | php 5.6 ini (sendmail) vs msmtp | php-version.feature outline `sendmail` column |
 | `--alias-domains` plain + wildcard (DB, compose VIRTUAL_HOST/CERT_NAME, main.conf server_name, HTTP) | alias-domains.feature scenarios 1-3 |
 | alias owned by another site / site name that is an alias | alias-domains.feature scenarios 4-5 |
 | alias trimming | alias-domains.feature "Spaces around alias domains are trimmed" |
-| alias that is an existing site | alias-domains.feature `@known-bug` (PHPT-7) |
+| alias that is an existing site | not covered yet: create checks aliases only against other sites' aliases, not their names (its scenario comes back with the fix) |
 | blank alias entries | alias-domains.feature `@destructive` regression (fixed by site-type-php #114, merged 2026-09-25; a regression breaks the nginx-proxy config until the rollback) |
 | invalid alias names (AUTH-1) | alias-domains.feature outline, regression (fixed by #114; 3 examples, the one with a space is also `@destructive`) |
 | `--public-dir` (relative, full path, nested, traversal sanitised, with cache, outside files not served) | public-dir.feature |
-| bare `--public-dir` | public-dir.feature `@known-bug` (PHPT-12) |
+| bare `--public-dir` | not covered yet: a bare `--public-dir` becomes the document root `1` (its scenario comes back with the fix) |
 | `--skip-status-check` | create.feature "--admin-email is stored and shown, --skip-status-check skips the HTTP probe" |
 | `--ssl=self` (+ wildcard flag stored, HTTPS, HTTP->HTTPS redirect, cert SANs) | ssl.feature scenarios 1-2 |
 | `--ssl=custom --ssl-key --ssl-crt` | ssl.feature "Create a php site with a custom certificate" |
@@ -89,7 +89,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | no flag: nginx + php + local db restarted, postfix not | lifecycle.feature "site restart restarts nginx, php and the local db, not postfix" |
 | `--php` only | lifecycle.feature "site restart --php restarts only php" |
 | `--db` with local db | lifecycle.feature "site restart --db restarts the local db" |
-| `--db` without local db | lifecycle.feature `@known-bug` (PHPT-13) |
+| `--db` without local db | not covered yet: the compose exit code is ignored, so restarting a service the site doesn't have still exits 0 (its scenario comes back with the fix) |
 | `--all`, `--nginx` alone | not covered separately (same code path as no flag / `--php`) |
 
 ### `ee site reload [<site-name>] [--all] [--nginx] [--php]` (`PHP::reload`)
@@ -124,37 +124,26 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `delete` twice / unknown site | lifecycle.feature "Deleting a php site twice fails the second time" |
 | `delete` of an LE site removes certs | ssl.feature `@le` ("Revoking certificate." is logged before the attempt and revocation errors are swallowed, so revocation itself is not proven) |
 | `clean` without cache / `--proxy` without proxy cache | cache.feature "ee site clean on a site without cache" |
-| `clean --page` on a php cache site | cache.feature `@known-bug` (PHPT-8, CACHE-1) |
-| `clean` on a local-redis site | cache.feature `@known-bug` (PHPT-9) |
+| `clean --page` on a php cache site | not covered yet: clean purges `<site>_page*` but php sites store pages under `<site>:http...`, so nothing is purged (its scenario comes back with the fix) |
+| `clean` on a local-redis site | not covered yet: clean always targets the global redis, never the site's local redis (its scenario comes back with the fix) |
 | `clean --object`, `clean --proxy` with proxy cache | not covered: `--object` shares PHPT-8's path; `--proxy` runs `docker exec -it` (CACHE-1) |
 | `ssl-verify`, `ssl-info`, `ssl-renew`, `share`, `clone`, `sync`, `backup`, `restore` | not covered here: generic, owned by the site-command suite (no php-specific code) |
 | `site_cleanup` hook on delete | indirectly (delete scenarios); hook consumers are tested in their packages |
 
 Estimated coverage: about 88% of the inventory items above (php-specific items: about 95%; the gaps are the remote-DB verification paths that need a reachable remote MariaDB, `--force`, LE wildcard, and flags that share code paths with covered ones). Several items counted before only passed vacuously (`--ssl=off --wildcard`, the directory auto-detect, rollback, the redirect delete, the combo cache checks); they now assert the real behaviour.
 
-## Known bugs exercised (`@known-bug`, 19 scenarios incl. outline examples)
+## Scenarios
 
-Every `@known-bug` scenario asserts the correct behaviour, so it fails until the bug is fixed, and names its issues.md ID in a comment: DB-1 (2), MIG-16, CACHE-1, and the site-type-php section `PHPT-*` (cross-referenced with the site-type-wp `WPT-*` entries for the shared DB-name collision): SEC-1 is fixed in v4.13.2 (site-type-php#117, site-command#509) and its scenario is regular since Behat r2 (2026-10-19).
+146 scenarios (outline examples included): 133 regular, 12 `@slow`, 1 `@le`. The CI workflow runs them in three lanes: main (`~@slow`), slow and le (against Pebble).
 
-| ID | Severity | Scenario(s) |
-|---|---|---|
-| PHPT-1..4 | High | regular scenarios since the fixes on the `fix/site-name-collisions` branches of site-command and site-type-php (2026-09-26, local); they fail on develop until those are merged: database.feature "Reusing another site's --dbname ...", "Reusing another site's --dbuser ...", "Two site names that map to the same default db name ...", "A taken default db name gets a numbered suffix ..."; create.feature "A site name whose docker volumes collide with an existing site is refused" |
-| PHPT-5 | Medium | database.feature "An unreachable remote db host fails the create and rolls back" |
-| PHPT-6 | Medium | create.feature "--php=<version> without --type keeps the requested version" |
-| PHPT-7 | Medium | alias-domains.feature "An alias domain that is an existing site is refused on create" |
-| PHPT-8 | Medium | cache.feature "ee site clean --page purges the php page cache in the global redis" |
-| PHPT-9 | Medium | cache.feature "ee site clean purges the page cache of a local-redis site" |
-| PHPT-10 | Medium | regular since the SC-3 fix on site-command `fix/proxy-cache-rollback-and-le-alias` (2026-09-27, local); fails on develop until merged: ssl.feature "SSL of a site created with --ssl=self can be disabled" |
-| PHPT-11 | Low | create.feature outline "A --php value that only loosely matches ..." (4 examples) |
-| PHPT-12 | Low | public-dir.feature "A bare --public-dir without a value does not create the document root 1" |
-| PHPT-13 | Low | lifecycle.feature "site restart --db on a php site without a local db fails" |
-| PHPT-14..18 | Low / cosmetic | not tested (no clean black-box assertion): php sites render `.env`/`php.ini` from site-type-wp's templates; site-command's `ltrim($url, 'www.')` character-list bug; `var_dump()` in the inherit error; `--ssl` options not enforced on create (PHPT-17 is documented by the `--ssl=bogus` rollback scenario); no `/etc/hosts` entry for custom/inherit SSL sites |
+## Known bugs left out
+
+Scenarios for open bugs aren't in the suite: each comes back with the PR that fixes its bug. The inventory above marks them "not covered yet". Bugs without a clean black-box assertion aren't tested: php sites render `.env`/`php.ini` from site-type-wp's templates; site-command's `ltrim($url, 'www.')` character-list bug; `var_dump()` in the inherit error; `--ssl` options not enforced on create (documented by the `--ssl=bogus` rollback scenario); no `/etc/hosts` entry for custom/inherit SSL sites.
 
 Other notes from the code: `--php=latest` maps to the php8.4 image, not the newest supported (8.5), maybe intended; `update --add/--delete-alias-domains` doesn't regenerate `main.conf` (stale `server_name`, harmless); a site created with `--dbhost=global-db:<port>` and user-supplied credentials is stored with `db_host=global-db`, so `site delete` drops that pre-existing database and user. The old suite's label assertion was inverted and its mysql checks passed vacuously (DB-1); both fixed in this context.
 
 ## Tags
 
-- `@known-bug` (20): expected to fail until fixed; exclude with `--tags='~@known-bug'`.
 - `@le` (1): issues one Let's Encrypt certificate for `bh-site-type-php-1.ee4-test.rt.gw` (plus www) and deletes the site in the same scenario. The name is fixed, so more than 5 runs in a week hit LE's duplicate-certificate limit. Needs `le-mail` in config.yml (checked first: stdin is /dev/null, so ee can't prompt). On CI it runs against Pebble (`behat/ci/pebble-setup.sh`): the issuer check reads `EE_BEHAT_LE_ISSUER` and the DNS check `EE_BEHAT_LE_DNS_SERVER` (defaults: Let's Encrypt, 1.1.1.1).
 - `@le-real`: none; the `@le` scenario passes on Pebble.
 - `@destructive` (3): `update --proxy-cache` restarts the global nginx-proxy container (self-restoring); the blank-alias and space-alias regressions (fixed by #114, merged 2026-09-25; they passed on develop in https://github.com/mrrobot47/site-type-php/actions/runs/36099146918 and are regular scenarios since) would render an invalid nginx-proxy config for ~2 minutes if they regressed.
@@ -176,10 +165,10 @@ Other notes from the code: `--php=latest` maps to the php8.4 image, not the newe
 
 ## Runtime estimate
 
-About 80 site creations (about 35 s each), plus deletes, updates and restarts: roughly 70-80 minutes for the whole suite, about 60 minutes with `--tags='~@slow'`, and about 55 minutes with `--tags='~@slow&&~@le&&~@known-bug'`.
+About 80 site creations (about 35 s each), plus deletes, updates and restarts: roughly 70-80 minutes for the whole suite, about 60 minutes with `--tags='~@slow'`, and about 55 minutes with `--tags='~@slow&&~@le'`.
 
 ## Validation done
 
-- `vendor/bin/behat --dry-run --strict` in a private core copy on `upstream/develop`: no undefined or ambiguous steps (159 scenarios, 1088 steps). Behat 3.8 exits 1 on `--dry-run --strict` because every step is "skipped"; the upstream suite does the same.
+- `vendor/bin/behat --dry-run --strict` in a private core copy on `upstream/develop`: no undefined or ambiguous steps. Behat 3.8 exits 1 on `--dry-run --strict` because every step is "skipped"; the upstream suite does the same.
 - Copy the features with `cp -r`, not `cp -a`: Behat's Gherkin cache in `/tmp/behat_gherkin_cache` is keyed on mtime, so preserving older mtimes serves stale parses.
 - `php -l` of `features/bootstrap/*.php` on php:7.4-cli and php:8.5-cli.

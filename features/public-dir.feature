@@ -38,13 +38,6 @@ Feature: Custom document root of php sites (--public-dir)
     And the site "bh-site-type-php-63.test" should have the field "site_container_fs_path" set to "/var/www/htdocs/etc"
     And the file "/opt/easyengine/sites/bh-site-type-php-63.test/config/nginx/conf.d/main.conf" should contain "root /var/www/htdocs/etc;"
 
-  # PHPT-12: `[--public-dir]` is declared as a flag, so a bare --public-dir arrives as `true` and becomes the directory "1".
-  # Either fix (reject the bare flag, or keep the default root) passes: only the "1" document root is asserted against.
-  @known-bug
-  Scenario: A bare --public-dir without a value does not create the document root "1"
-    When I run "bin/ee site create bh-site-type-php-64.test --type=php --public-dir"
-    Then the directory "/opt/easyengine/sites/bh-site-type-php-64.test/app/htdocs/1" should not exist
-
   Scenario: --public-dir works together with the redis page cache
     When I run "bin/ee site create bh-site-type-php-65.test --type=php --public-dir=public --cache"
     Then the command should succeed

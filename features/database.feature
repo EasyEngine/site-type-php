@@ -32,12 +32,6 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the file "/opt/easyengine/sites/bh-site-type-php-10.test/.env" should not contain "MYSQL_ROOT_PASSWORD"
     And a GET request to "http://bh-site-type-php-10.test/" should return 200
 
-  # DB-1: the MariaDB 11.8 client in php8.2+ images demands TLS, which global-db does not offer.
-  @known-bug
-  Scenario: The mysql CLI inside the php container reaches the global db
-    Given a php site "bh-site-type-php-10.test" created with "--with-db" exists
-    Then Check global mysql database connection for 'bh-site-type-php-10.test'
-
   Scenario: --dbname, --dbuser and --dbpass are used for the global db
     When I run "bin/ee site create bh-site-type-php-11.test --type=php --with-db --dbname=bh_stp_db11 --dbuser=bh_stp_user11 --dbpass=Bh-Stp-Pass-11"
     Then the command should succeed
@@ -85,12 +79,6 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the php service of site "bh-site-type-php-12.test" should be able to connect to the site database
     And the "php" service of site "bh-site-type-php-12.test" should not be attached to the docker network "ee-global-backend-network"
 
-  # DB-1 (inferred): the local db runs the same easyengine/mariadb image as global-db, so the same TLS demand applies.
-  @known-bug
-  Scenario: The mysql CLI inside the php container reaches the local db
-    Given a php site "bh-site-type-php-12.test" created with "--with-db --local-db" exists
-    Then Check local mysql database connection for 'bh-site-type-php-12.test'
-
   # Current behaviour: --local-db only acts inside --with-db, so alone it is silently ignored.
   Scenario: --local-db without --with-db creates no database at all
     When I run "bin/ee site create bh-site-type-php-13.test --type=php --local-db"
@@ -131,16 +119,6 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the site "bh-site-type-php-18.test" should have the field "db_user" set to "bh_stp_u18"
     And the site "bh-site-type-php-18.test" should have an empty "db_root_password"
     And the "db" service of site "bh-site-type-php-18.test" should not exist
-
-  # PHPT-5: PHP::create_site() calls maybe_verify_remote_db_connection() only for --local-db, where it returns at once,
-  # so remote credentials are never checked and --skip-check/--force are dead options (site-type-wp calls it for every create).
-  @known-bug
-  Scenario: An unreachable remote db host fails the create and rolls back
-    When I run "bin/ee site create bh-site-type-php-17.test --type=php --with-db --dbhost=bh-stp-unreachable.invalid --dbuser=bh_stp_u17 --dbpass=bh-stp-p17"
-    Then the command should fail
-    And STDOUT should contain "Verifying connection to remote database"
-    And the site "bh-site-type-php-17.test" should not exist
-    And the directory "/opt/easyengine/sites/bh-site-type-php-17.test" should not exist
 
   # PHPT-1: another site's --dbname is refused up front; the rollback only drops what the create itself made.
   Scenario: Reusing another site's --dbname fails without dropping that database

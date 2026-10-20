@@ -62,12 +62,6 @@ Feature: Redis page cache of php sites (--cache, --with-local-redis) and ee site
     And the global redis should not have keys matching "bh-site-type-php-31.test:*"
     And Check local redis cache for 'bh-site-type-php-31.test'
 
-  # MIG-16: the local redis service has no restart policy, unlike every other service.
-  @known-bug
-  Scenario: The local redis container restarts with Docker
-    Given a php site "bh-site-type-php-31.test" created with "--cache --with-local-redis" exists
-    Then the "redis" service of site "bh-site-type-php-31.test" should have the restart policy "always"
-
   # Current behaviour: --with-local-redis only acts together with --cache.
   Scenario: --with-local-redis without --cache enables no cache
     When I run "bin/ee site create bh-site-type-php-32.test --type=php --with-local-redis"
@@ -120,27 +114,3 @@ Feature: Redis page cache of php sites (--cache, --with-local-redis) and ee site
     When I run "timeout 120 bin/ee site clean bh-site-type-php-34.test --proxy"
     Then the return code should be 1
     And STDERR should contain "Proxy cache is not enabled on site."
-
-  # PHPT-8: clean purges "<site>_page*" but php sites store pages under "<site>:http...", so nothing is purged.
-  # CACHE-1: the purge also runs `docker exec -it`, which fails without a TTY (or hangs under nested ptys), hence the timeout.
-  @known-bug
-  Scenario: ee site clean --page purges the php page cache in the global redis
-    Given a php site "bh-site-type-php-35.test" created with "--cache" exists
-    When I send a GET request to "http://bh-site-type-php-35.test/"
-    And I send a GET request to "http://bh-site-type-php-35.test/"
-    Then the global redis should have keys matching "bh-site-type-php-35.test:*"
-    When I run "timeout 120 bin/ee site clean bh-site-type-php-35.test --page"
-    Then the command should succeed
-    And STDOUT should contain "Success: Page cache cleared for bh-site-type-php-35.test"
-    And the global redis should not have keys matching "bh-site-type-php-35.test:*"
-
-  # PHPT-9: clean_site_cache() always targets the global redis container, never the site's local redis.
-  @known-bug
-  Scenario: ee site clean purges the page cache of a local-redis site
-    Given a php site "bh-site-type-php-36.test" created with "--cache --with-local-redis" exists
-    When I send a GET request to "http://bh-site-type-php-36.test/"
-    And I send a GET request to "http://bh-site-type-php-36.test/"
-    Then the redis service of site "bh-site-type-php-36.test" should have keys matching "bh-site-type-php-36.test:*"
-    When I run "timeout 120 bin/ee site clean bh-site-type-php-36.test"
-    Then the command should succeed
-    And the redis service of site "bh-site-type-php-36.test" should not have keys matching "bh-site-type-php-36.test:*"

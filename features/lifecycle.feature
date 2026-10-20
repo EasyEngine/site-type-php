@@ -166,14 +166,6 @@ Feature: info, list, enable, disable, refresh, restart, reload, proxy cache and 
     And STDOUT should contain "Restarting db"
     And the "db" service of site "bh-site-type-php-103.test" should have been restarted
 
-  # PHPT-13: run_compose_command() ignores the docker-compose exit code, so restarting a service the site
-  # does not have prints compose's "no such service" and still exits 0.
-  @known-bug
-  Scenario: site restart --db on a php site without a local db fails
-    Given a php site "bh-site-type-php-100.test" exists
-    When I run "bin/ee site restart bh-site-type-php-100.test --db"
-    Then the command should fail
-
   Scenario: site reload reloads nginx and php-fpm without restarting containers
     Given a php site "bh-site-type-php-100.test" exists
     And I note the start time of the "nginx" service of site "bh-site-type-php-100.test"

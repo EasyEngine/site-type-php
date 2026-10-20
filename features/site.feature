@@ -71,39 +71,27 @@ Feature: Site command presence and usage errors
 
   Scenario: Check site disable sub command is present
     When I run 'bin/ee site disable'
-    Then STDERR should return something like
-    """
-    Error: Could not find the site you wish to run site disable command on.
-    Either pass it as an argument: `ee site disable <site-name>`
-    or run `ee site disable` from inside the site folder.
-    """
+    Then STDERR should contain "Error: Could not find the site you wish to run site disable command on."
+    And STDERR should contain "Either pass it as an argument: `ee site disable <site-name>`"
+    And STDERR should contain "or run `ee site disable` from inside the site folder."
 
   Scenario: Check site enable sub command is present
     When I run 'bin/ee site enable'
-    Then STDERR should return something like
-    """
-    Error: Could not find the site you wish to run site enable command on.
-    Either pass it as an argument: `ee site enable <site-name>`
-    or run `ee site enable` from inside the site folder.
-    """
+    Then STDERR should contain "Error: Could not find the site you wish to run site enable command on."
+    And STDERR should contain "Either pass it as an argument: `ee site enable <site-name>`"
+    And STDERR should contain "or run `ee site enable` from inside the site folder."
 
   Scenario: Check site reload sub command is present
     When I run 'bin/ee site reload'
-    Then STDERR should return something like
-    """
-    Error: Could not find the site you wish to run site reload command on.
-    Either pass it as an argument: `ee site reload <site-name>`
-    or run `ee site reload` from inside the site folder.
-    """
+    Then STDERR should contain "Error: Could not find the site you wish to run site reload command on."
+    And STDERR should contain "Either pass it as an argument: `ee site reload <site-name>`"
+    And STDERR should contain "or run `ee site reload` from inside the site folder."
 
   Scenario: Check site info sub command is present
     When I run 'bin/ee site info'
-    Then STDERR should return something like
-    """
-    Error: Could not find the site you wish to run site info command on.
-    Either pass it as an argument: `ee site info <site-name>`
-    or run `ee site info` from inside the site folder.
-    """
+    Then STDERR should contain "Error: Could not find the site you wish to run site info command on."
+    And STDERR should contain "Either pass it as an argument: `ee site info <site-name>`"
+    And STDERR should contain "or run `ee site info` from inside the site folder."
 
   Scenario: Check site delete sub command is present
     When I run 'bin/ee site delete'

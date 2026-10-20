@@ -120,6 +120,8 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     Then the return code should be 1
     And STDERR should contain "`--dbuser` and `--dbpass` are required for remote db host."
 
+  # PHPT-5: nothing probes a remote db today, with or without --skip-check, so this only proves the create and the port
+  # parsing; the skip itself becomes testable once PHPT-5 is fixed.
   Scenario: --skip-check creates the site without probing the remote db, and the port is parsed
     When I run "bin/ee site create bh-site-type-php-18.test --type=php --with-db --dbhost=bh-stp-unreachable.invalid:3307 --dbuser=bh_stp_u18 --dbpass=bh-stp-p18 --skip-check"
     Then the command should succeed
@@ -130,7 +132,7 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the site "bh-site-type-php-18.test" should have an empty "db_root_password"
     And the "db" service of site "bh-site-type-php-18.test" should not exist
 
-  # New (suspected): PHP::create_site() calls maybe_verify_remote_db_connection() only for --local-db, where it returns at once,
+  # PHPT-5: PHP::create_site() calls maybe_verify_remote_db_connection() only for --local-db, where it returns at once,
   # so remote credentials are never checked and --skip-check/--force are dead options (site-type-wp calls it for every create).
   @known-bug
   Scenario: An unreachable remote db host fails the create and rolls back
@@ -140,7 +142,7 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the site "bh-site-type-php-17.test" should not exist
     And the directory "/opt/easyengine/sites/bh-site-type-php-17.test" should not exist
 
-  # New (suspected), data loss: create_user_in_db() fails on the existing database, and catch_clean() then runs
+  # PHPT-1, data loss: create_user_in_db() fails on the existing database, and catch_clean() then runs
   # cleanup_db() with the requested --dbname, dropping the OTHER site's database.
   @known-bug
   Scenario: Reusing another site's --dbname fails without dropping that database
@@ -152,7 +154,7 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the global database "bh_stp_shared20" should contain the table "bh_marker"
     And the php service of site "bh-site-type-php-20.test" should be able to connect to the site database
 
-  # New (suspected), data loss: same rollback path with --dbuser; cleanup_db_user() drops the other site's user.
+  # PHPT-3, data loss: same rollback path with --dbuser; cleanup_db_user() drops the other site's user.
   # Own site 23 (not 20): the --dbname scenario above may already have dropped site 20's database.
   @known-bug
   Scenario: Reusing another site's --dbuser fails without dropping that user
@@ -163,8 +165,9 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the global database user "bh_stp_user23" should exist
     And the php service of site "bh-site-type-php-23.test" should be able to connect to the site database
 
-  # New (suspected), data loss: the default db name replaces "." and "-" with "_", so these two names collide,
-  # and the failed second create drops the first site's database.
+  # PHPT-2, data loss: the default db name replaces "." and "-" with "_", so these two names collide,
+  # and the failed second create drops the first site's database. The same pair also shares volume names (PHPT-4),
+  # so the second create is expected to fail even once PHPT-2 is fixed; only site 22.x's data is asserted.
   @known-bug
   Scenario: Two site names that map to the same default db name do not destroy each other's database
     Given a php site "bh-site-type-php-22.x.test" created with "--with-db" exists

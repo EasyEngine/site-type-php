@@ -59,12 +59,16 @@ Feature: Site command presence and usage errors
 
   Scenario: Help for php site info, restart and reload shows the php variants
     When I run "bin/ee help site restart --type=php"
-    Then STDOUT should contain "[--php]"
+    Then the command should succeed
+    And STDOUT should contain "[--php]"
     And STDOUT should contain "[--db]"
     When I run "bin/ee help site reload --type=php"
-    Then STDOUT should contain "[--php]"
+    Then the command should succeed
+    And STDOUT should contain "[--php]"
+    And STDOUT should not contain "[--db]"
     When I run "bin/ee help site info --type=php"
-    Then STDOUT should contain "[--format=<format>]"
+    Then the command should succeed
+    And STDOUT should contain "[--format=<format>]"
 
   Scenario: Check site disable sub command is present
     When I run 'bin/ee site disable'

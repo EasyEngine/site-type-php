@@ -682,6 +682,20 @@ class FeatureContext implements Context
 	}
 
 	/**
+	 * @Then the JSON list in STDOUT should contain an item with :key set to :value and :key2 set to :value2
+	 */
+	public function theJsonListShouldContainItemWithBoth( $key, $value, $key2, $value2 )
+	{
+		foreach ( (array) $this->decodedStdout() as $item ) {
+			if ( is_array( $item ) && array_key_exists( $key, $item ) && array_key_exists( $key2, $item )
+				&& $this->scalarToString( $item[ $key ] ) === $value && $this->scalarToString( $item[ $key2 ] ) === $value2 ) {
+				return;
+			}
+		}
+		throw new Exception( "No item with $key=$value and $key2=$value2 in:\n" . $this->lastCommand()->stdout );
+	}
+
+	/**
 	 * @Then the JSON list in STDOUT should not contain an item with :key set to :value
 	 */
 	public function theJsonListShouldNotContainItem( $key, $value )
@@ -1040,9 +1054,17 @@ class FeatureContext implements Context
 			var_export( (string) $row['db_name'], true ),
 			empty( $row['db_port'] ) ? 3306 : (int) $row['db_port']
 		);
-		$id     = $this->requireServiceContainer( $site, 'php' );
-		$result = self::run( sprintf( 'printf %%s %s | docker exec -i %s php', escapeshellarg( $code ), $id ) );
-		$ok     = 'OK' === trim( $result->stdout );
+		$id       = $this->requireServiceContainer( $site, 'php' );
+		$deadline = time() + ( '' === $not ? 60 : 0 );
+		// A fresh local MariaDB refuses connections until its first-start init is done.
+		do {
+			$result = self::run( sprintf( 'printf %%s %s | docker exec -i %s php', escapeshellarg( $code ), $id ) );
+			$ok     = 'OK' === trim( $result->stdout );
+			if ( $ok || time() >= $deadline ) {
+				break;
+			}
+			sleep( 2 );
+		} while ( true );
 		if ( $ok === ( '' !== $not ) ) {
 			throw new Exception( sprintf( "The php service of %s %s connect to %s@%s/%s.\n%s", $site, $ok ? 'could' : 'could not', $row['db_user'], $row['db_host'], $row['db_name'], $this->describe( $result ) ) );
 		}
@@ -1372,6 +1394,19 @@ class FeatureContext implements Context
 		$result = self::run( 'dig +short ' . escapeshellarg( $domain ) . ' @1.1.1.1' );
 		if ( '' === trim( $result->stdout ) ) {
 			throw new Exception( "$domain does not resolve publicly; Let's Encrypt scenarios need the ee4-test.rt.gw DNS records." );
+		}
+	}
+
+	/**
+	 * Commands run with stdin on /dev/null, so a value ee would prompt for (e.g. le-mail) must already be configured.
+	 *
+	 * @Given the ee config has a :key value
+	 */
+	public function theEeConfigHasAValue( $key )
+	{
+		$config = $this->readFile( EE_ROOT_DIR . '/config/config.yml' );
+		if ( 1 !== preg_match( '/^' . preg_quote( $key, '/' ) . ':[ \t]*\S/m', $config ) ) {
+			throw new Exception( "Set $key in " . EE_ROOT_DIR . '/config/config.yml first (ee would prompt for it).' );
 		}
 	}
 

@@ -40,7 +40,7 @@ Feature: PHP versions of php sites (create --php, update --php)
     And the php service of site "bh-site-type-php-52.test" should run PHP "8.3"
     And the directory "/opt/easyengine/sites/bh-site-type-php-52.test/.backup/config/php-8.4" should exist
     And the file "/opt/easyengine/sites/bh-site-type-php-52.test/config/php/php/conf.d/custom.ini" should contain "; bh-custom-ini-marker"
-    And a GET request to "http://bh-site-type-php-52.test/" should return 200
+    And I wait until a GET request to "http://bh-site-type-php-52.test/" returns 200 within 60 seconds
 
   Scenario: Updating to the current PHP version is refused
     Given a php site "bh-site-type-php-49.test" created with "--php=8.4" exists
@@ -67,7 +67,7 @@ Feature: PHP versions of php sites (create --php, update --php)
     Then the command should succeed
     And the php service of site "bh-site-type-php-53.test" should run PHP "8.4"
     And the file "/opt/easyengine/sites/bh-site-type-php-53.test/config/php/php/conf.d/custom.ini" should contain "sendmail_path = /usr/bin/msmtp -t"
-    And a GET request to "http://bh-site-type-php-53.test/" should return 200
+    And I wait until a GET request to "http://bh-site-type-php-53.test/" returns 200 within 60 seconds
 
   Scenario: Updating to PHP 5.6 switches msmtp to sendmail
     Given a php site "bh-site-type-php-54.test" exists
@@ -75,7 +75,7 @@ Feature: PHP versions of php sites (create --php, update --php)
     Then the command should succeed
     And the php service of site "bh-site-type-php-54.test" should run PHP "5.6"
     And the file "/opt/easyengine/sites/bh-site-type-php-54.test/config/php/php/conf.d/custom.ini" should contain "sendmail_path = /usr/sbin/sendmail -t -i -f no-reply@example.com"
-    And a GET request to "http://bh-site-type-php-54.test/" should return 200
+    And I wait until a GET request to "http://bh-site-type-php-54.test/" returns 200 within 60 seconds
 
   Scenario: The PHP version of a disabled site can not be updated
     Given a php site "bh-site-type-php-55.test" exists

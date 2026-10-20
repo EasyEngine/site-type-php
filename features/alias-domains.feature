@@ -43,7 +43,7 @@ Feature: Alias domains of php sites (create --alias-domains, update --add/--dele
     And the site "bh-site-type-php-78.test" should have the field "alias_domains" set to "bh-site-type-php-78.test,bh-site-type-php-78-a.test,bh-site-type-php-78-b.test"
     And a GET request to "http://bh-site-type-php-78-b.test/" via "127.0.0.1" should return 200
 
-  # New (suspected): create only checks aliases against other sites' aliases (check_alias_in_db), not against existing
+  # PHPT-7: create only checks aliases against other sites' aliases (check_alias_in_db), not against existing
   # site names, so two sites end up claiming the same VIRTUAL_HOST. `site update --add-alias-domains` does check this.
   @known-bug
   Scenario: An alias domain that is an existing site is refused on create
@@ -53,8 +53,10 @@ Feature: Alias domains of php sites (create --alias-domains, update --add/--dele
     And STDERR should contain "bh-site-type-php-74.test already exists as a site"
     And the site "bh-site-type-php-73.test" should not exist
 
-  # Blank entries are stored as-is on develop; fixed in site-type-php #114 (c7d7bc4, not merged).
-  @known-bug
+  # Blank entries are stored as-is on develop; fixed in site-type-php #114 (c7d7bc4, not merged). Until then the empty
+  # VIRTUAL_HOST entry renders an invalid nginx-proxy config (`upstream  {`), so proxy reloads for every site fail until
+  # the status check rolls the site back (~2 minutes): hence @destructive.
+  @known-bug @destructive
   Scenario: Empty entries in --alias-domains are dropped
     When I run "bin/ee site create bh-site-type-php-75.test --type=php --alias-domains='bh-site-type-php-75-a.test,,bh-site-type-php-75-b.test,'"
     Then the command should succeed
@@ -74,6 +76,11 @@ Feature: Alias domains of php sites (create --alias-domains, update --add/--dele
       | site                       | alias                                |
       | bh-site-type-php-76.test   | _wildcard.bh-site-type-php-76.test   |
       | bh-site-type-php-76-1.test | -bh-site-type-php-76-a.test          |
+
+    # A space in VIRTUAL_HOST breaks the nginx-proxy config the same way as the blank entries above.
+    @destructive
+    Examples:
+      | site                       | alias                                |
       | bh-site-type-php-76-2.test | bh-site-type-php-76 a.test           |
 
   Scenario: Add an alias domain to a php site

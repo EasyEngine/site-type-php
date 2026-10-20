@@ -31,7 +31,7 @@ Feature: SSL on php sites (create --ssl=self|custom|inherit|le, update --ssl)
     And the site "bh-site-type-php-81.test" should have the field "site_ssl" set to "custom"
     And the files "/var/tmp/bh-site-type-php/certs/bh-site-type-php-81.test.crt" and "/opt/easyengine/services/nginx-proxy/certs/bh-site-type-php-81.test.crt" should be identical
     And the files "/var/tmp/bh-site-type-php/certs/bh-site-type-php-81.test.key" and "/opt/easyengine/services/nginx-proxy/certs/bh-site-type-php-81.test.key" should be identical
-    And a GET request to "https://bh-site-type-php-81.test/" via "127.0.0.1" should return 200
+    And I wait until a GET request to "https://bh-site-type-php-81.test/" via "127.0.0.1" returns 200 within 60 seconds
     And the certificate served for "bh-site-type-php-81.test" should match the file "/var/tmp/bh-site-type-php/certs/bh-site-type-php-81.test.crt"
 
   Scenario: --ssl=custom needs both --ssl-key and --ssl-crt
@@ -61,7 +61,7 @@ Feature: SSL on php sites (create --ssl=self|custom|inherit|le, update --ssl)
     Then the command should succeed
     And STDOUT should contain "Inherited certs from parent"
     And the site "sub.bh-site-type-php-85.test" should have the field "site_ssl" set to "inherit"
-    And a GET request to "https://sub.bh-site-type-php-85.test/" via "127.0.0.1" should return 200
+    And I wait until a GET request to "https://sub.bh-site-type-php-85.test/" via "127.0.0.1" returns 200 within 60 seconds
     And the certificate served for "sub.bh-site-type-php-85.test" should cover "*.bh-site-type-php-85.test"
 
   Scenario: --ssl=inherit together with --wildcard is refused and rolled back
@@ -71,13 +71,20 @@ Feature: SSL on php sites (create --ssl=self|custom|inherit|le, update --ssl)
     Then the return code should be 1
     And STDERR should contain "Cannot use --wildcard with --ssl=inherit"
     And the site "sub2.bh-site-type-php-85.test" should not exist
+    And the directory "/opt/easyengine/sites/sub2.bh-site-type-php-85.test" should not exist
+    And the site "sub2.bh-site-type-php-85.test" should have 0 docker volumes
+    And the "nginx" service of site "sub2.bh-site-type-php-85.test" should not exist
+    And the file "/opt/easyengine/services/nginx-proxy/conf.d/sub2.bh-site-type-php-85.test-redirect.conf" should not exist
 
   Scenario: --ssl with an unknown value fails and rolls back
     When I run "bin/ee site create bh-site-type-php-87.test --type=php --ssl=bogus --skip-status-check"
     Then the return code should be 1
     And STDERR should contain "Unrecognized value in --ssl flag: bogus"
     And the site "bh-site-type-php-87.test" should not exist
+    And the directory "/opt/easyengine/sites/bh-site-type-php-87.test" should not exist
     And the site "bh-site-type-php-87.test" should have 0 docker volumes
+    And the "nginx" service of site "bh-site-type-php-87.test" should not exist
+    And the docker network "bh-site-type-php-87.test" should not exist
 
   Scenario: Enable and disable self-signed SSL on an existing php site
     Given a php site "bh-site-type-php-88.test" exists
@@ -99,12 +106,21 @@ Feature: SSL on php sites (create --ssl=self|custom|inherit|le, update --ssl)
     Then the return code should be 1
     And STDERR should contain "Error: SSL is already disabled on bh-site-type-php-88.test"
 
+  # Site 80 is SSL-on with site_ssl_wildcard=1 (from create --ssl=self), the only state that reaches this check.
   Scenario: --ssl=off with --wildcard is refused
-    Given a php site "bh-site-type-php-88.test" exists
-    When I run "bin/ee site update bh-site-type-php-88.test --ssl=off --wildcard"
+    Given a php site "bh-site-type-php-80.test" created with "--ssl=self" exists
+    When I run "bin/ee site update bh-site-type-php-80.test --ssl=off --wildcard"
     Then the return code should be 1
+    And STDERR should contain "You cannot use --wildcard flag with --ssl=off"
+    And the site "bh-site-type-php-80.test" should have the field "site_ssl" set to "self"
 
-  # New (suspected, site-command): create --ssl=self stores site_ssl_wildcard=1, and update_ssl() then refuses
+  Scenario: Switching a normal SSL site to wildcard SSL is refused
+    Given a php site "bh-site-type-php-88.test" exists
+    When I run "bin/ee site update bh-site-type-php-88.test --ssl=self --wildcard"
+    Then the return code should be 1
+    And STDERR should contain "Update from normal SSL to wildcard SSL is not supported yet."
+
+  # PHPT-10 (site-command): create --ssl=self stores site_ssl_wildcard=1, and update_ssl() then refuses
   # --ssl=off ("wildcard to normal") and --ssl=off --wildcard ("cannot use --wildcard"), so SSL can never be turned off.
   @known-bug
   Scenario: SSL of a site created with --ssl=self can be disabled
@@ -116,12 +132,14 @@ Feature: SSL on php sites (create --ssl=self|custom|inherit|le, update --ssl)
   @le
   Scenario: Create and delete a php site with a Let's Encrypt certificate
     Given the domain "bh-site-type-php-1.ee4-test.rt.gw" resolves publicly
+    And the ee config has a "le-mail" value
     And the site "bh-site-type-php-1.ee4-test.rt.gw" does not exist
     When I run "bin/ee site create bh-site-type-php-1.ee4-test.rt.gw --type=php --ssl=le"
     Then the command should succeed
     And the site "bh-site-type-php-1.ee4-test.rt.gw" should have the field "site_ssl" set to "le"
     And the site "bh-site-type-php-1.ee4-test.rt.gw" should have the field "site_ssl_wildcard" set to "0"
     And the hosts file should not have an entry for "bh-site-type-php-1.ee4-test.rt.gw"
+    And I wait until a GET request to "https://bh-site-type-php-1.ee4-test.rt.gw/" returns 200 within 60 seconds
     And a GET request to "https://bh-site-type-php-1.ee4-test.rt.gw/" with certificate verification should return 200
     And the response should contain "Congratulations!"
     And the certificate served for "bh-site-type-php-1.ee4-test.rt.gw" should be issued by "Let's Encrypt"

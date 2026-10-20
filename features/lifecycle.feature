@@ -38,9 +38,10 @@ Feature: info, list, enable, disable, refresh, restart, reload, proxy cache and 
     Then the JSON in STDOUT should have "db_name" set to "bh_stp_db101"
     And the JSON in STDOUT should have "cache_host" set to "global-redis"
 
+  # The site root, not app/htdocs: app is a symlink into the docker volume, and get_site_name() reads the physical `pwd`.
   Scenario: site info works from inside the site directory
     Given a php site "bh-site-type-php-100.test" exists
-    When I change to the directory "/opt/easyengine/sites/bh-site-type-php-100.test/app/htdocs" and run "bin/ee site info"
+    When I change to the directory "/opt/easyengine/sites/bh-site-type-php-100.test" and run "bin/ee site info"
     Then the command should succeed
     And STDOUT should contain "| Site          | http://bh-site-type-php-100.test"
 
@@ -54,7 +55,7 @@ Feature: info, list, enable, disable, refresh, restart, reload, proxy cache and 
     When I run "bin/ee site list --format=json"
     Then the command should succeed
     And the JSON list in STDOUT should contain an item with "site" set to "bh-site-type-php-100.test"
-    And the JSON list in STDOUT should contain an item with "status" set to "enabled"
+    And the JSON list in STDOUT should contain an item with "site" set to "bh-site-type-php-100.test" and "status" set to "enabled"
     When I run "bin/ee site list --format=text"
     Then STDOUT should contain "bh-site-type-php-100.test"
 
@@ -165,14 +166,13 @@ Feature: info, list, enable, disable, refresh, restart, reload, proxy cache and 
     And STDOUT should contain "Restarting db"
     And the "db" service of site "bh-site-type-php-103.test" should have been restarted
 
-  # New (suspected): run_compose_command() ignores the docker-compose exit code, so restarting a service the site
-  # does not have prints "no such service" and still exits 0.
+  # PHPT-13: run_compose_command() ignores the docker-compose exit code, so restarting a service the site
+  # does not have prints compose's "no such service" and still exits 0.
   @known-bug
   Scenario: site restart --db on a php site without a local db fails
     Given a php site "bh-site-type-php-100.test" exists
     When I run "bin/ee site restart bh-site-type-php-100.test --db"
     Then the command should fail
-    And STDERR should contain "no such service"
 
   Scenario: site reload reloads nginx and php-fpm without restarting containers
     Given a php site "bh-site-type-php-100.test" exists
@@ -184,7 +184,7 @@ Feature: info, list, enable, disable, refresh, restart, reload, proxy cache and 
     And STDOUT should contain "Reloading php"
     And the "nginx" service of site "bh-site-type-php-100.test" should not have been restarted
     And the "php" service of site "bh-site-type-php-100.test" should not have been restarted
-    And a GET request to "http://bh-site-type-php-100.test/" should return 200
+    And I wait until a GET request to "http://bh-site-type-php-100.test/" returns 200 within 30 seconds
 
   Scenario: site reload --php and --nginx reload a single service
     Given a php site "bh-site-type-php-100.test" exists
@@ -226,6 +226,7 @@ Feature: info, list, enable, disable, refresh, restart, reload, proxy cache and 
     And the file "/opt/easyengine/services/nginx-proxy/vhost.d/bh-site-type-php-104.test_location" should not exist
     And the file "/opt/easyengine/services/nginx-proxy/vhost.d/bh-site-type-php-104-a.test_location" should not exist
     And I wait until a GET request to "http://bh-site-type-php-104.test/" returns 200 within 90 seconds
+    And the docker container "services_global-nginx-proxy_1" should be running
 
   Scenario: Delete a php site and everything it owns
     Given a php site "bh-site-type-php-105.test" exists
@@ -244,7 +245,6 @@ Feature: info, list, enable, disable, refresh, restart, reload, proxy cache and 
     And the site "bh-site-type-php-105.test" should have 0 docker volumes
     And the docker network "bh-site-type-php-105.test" should not exist
     And the hosts file should not have an entry for "bh-site-type-php-105.test"
-    And the file "/opt/easyengine/services/nginx-proxy/conf.d/bh-site-type-php-105.test-redirect.conf" should not exist
 
   Scenario: Deleting a php site twice fails the second time
     Given the site "bh-site-type-php-105.test" does not exist

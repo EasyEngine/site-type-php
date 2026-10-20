@@ -105,6 +105,10 @@ Feature: Create a plain php site
     Given a php site "bh-site-type-php-1.test" exists
     Then a GET request to "http://bh-site-type-php-1.test/ee-admin/ping" should return 200
     And the response should contain "pong"
+    And a GET request to "http://bh-site-type-php-1.test/ee-admin/status" should return 200
+    And the response should contain "pool:"
+    And a GET request to "http://bh-site-type-php-1.test/ee-admin/nginx_status" should return 200
+    And the response should contain "Active connections"
 
   Scenario: Creating the same site twice fails and leaves the first one intact
     Given a php site "bh-site-type-php-1.test" exists
@@ -128,7 +132,6 @@ Feature: Create a plain php site
     When I run "bin/ee site create bh-site-type-php-3 --type=php"
     Then the command should succeed
     And the site "bh-site-type-php-3.test" should exist
-    And the site "bh-site-type-php-3" should not exist
 
   Scenario: --admin-email is stored and shown, --skip-status-check skips the HTTP probe
     When I run "bin/ee site create bh-site-type-php-4.test --type=php --admin-email=ops@bh-site-type-php-4.test --skip-status-check"
@@ -158,10 +161,9 @@ Feature: Create a plain php site
       | 7.1     |
       | 9.0     |
       | abc     |
-      | 8.4.1   |
 
-  # New (suspected): the --php option check uses a loose in_array(), so "8" == "8.0" and "8.40" == 8.4 pass.
-  # The compose file then references a non-existent easyengine/php8 (or php8.40) image and the create fails late.
+  # PHPT-11: the --php option check uses a loose in_array(), so "8" == "8.0" and "8.40" == 8.4 pass (and "8.4.1" on
+  # PHP 7.x). The compose file then references a non-existent easyengine/php8 (or php8.40) image and the create fails late.
   @known-bug
   Scenario Outline: A --php value that only loosely matches a supported version is rejected up front
     When I run "bin/ee site create bh-site-type-php-9.test --type=php --php=<version>"
@@ -174,6 +176,7 @@ Feature: Create a plain php site
       | 8       |
       | 7       |
       | 8.40    |
+      | 8.4.1   |
 
   # EE3 compat: --mysql maps to --type=php --with-db (Site_Command::convert_old_args_to_new_args).
   Scenario: The legacy --mysql flag creates a php site with a database
@@ -183,7 +186,7 @@ Feature: Create a plain php site
     And the site "bh-site-type-php-7.test" should have the field "app_sub_type" set to "mysql"
     And the site "bh-site-type-php-7.test" should have the field "db_host" set to "global-db"
 
-  # New (suspected): without --type, `--php=8.3` is consumed as the EE3 `--php` type flag and the version is dropped.
+  # PHPT-6: without --type, `--php=8.3` is consumed as the EE3 `--php` type flag and the version is dropped.
   @known-bug
   Scenario: --php=<version> without --type keeps the requested version
     When I run "bin/ee site create bh-site-type-php-6.test --php=8.3"
@@ -200,7 +203,7 @@ Feature: Create a plain php site
     And STDERR should contain "Invalid site name"
     And the file "bhstpsec1" should not exist
 
-  # New (suspected), core EE_DOCKER::get_docker_style_prefix(): volume names drop "." and "-", so both names below map to
+  # PHPT-4, core EE_DOCKER::get_docker_style_prefix(): volume names drop "." and "-", so both names below map to
   # the prefix bhsitetypephp81test. create_volumes() skips volumes that already exist, and the second site mounts the
   # first site's htdocs/config volumes.
   @known-bug

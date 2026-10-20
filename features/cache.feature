@@ -84,7 +84,11 @@ Feature: Redis page cache of php sites (--cache, --with-local-redis) and ee site
     And the "db" service of site "bh-site-type-php-33.test" should be running
     And the "redis" service of site "bh-site-type-php-33.test" should not exist
     And the php service of site "bh-site-type-php-33.test" should be able to connect to the site database
-    And Check global redis cache for 'bh-site-type-php-33.test'
+    And the "nginx" service of site "bh-site-type-php-33.test" should be attached to the docker network "ee-global-backend-network"
+    When I send a GET request to "http://bh-site-type-php-33.test/"
+    And I send a GET request to "http://bh-site-type-php-33.test/"
+    Then the response header "X-SRCache-Fetch-Status" should contain "HIT"
+    And the global redis should have keys matching "bh-site-type-php-33.test:*"
 
   Scenario: Local redis and global db
     When I run "bin/ee site create bh-site-type-php-37.test --cache --type=php --with-db --with-local-redis"
@@ -93,7 +97,11 @@ Feature: Redis page cache of php sites (--cache, --with-local-redis) and ee site
     And the "redis" service of site "bh-site-type-php-37.test" should be running
     And the "db" service of site "bh-site-type-php-37.test" should not exist
     And the php service of site "bh-site-type-php-37.test" should be able to connect to the site database
-    And Check local redis cache for 'bh-site-type-php-37.test'
+    When I send a GET request to "http://bh-site-type-php-37.test/"
+    And I send a GET request to "http://bh-site-type-php-37.test/"
+    Then the response header "X-SRCache-Fetch-Status" should contain "HIT"
+    And the redis service of site "bh-site-type-php-37.test" should have keys matching "bh-site-type-php-37.test:*"
+    And the global redis should not have keys matching "bh-site-type-php-37.test:*"
 
   Scenario: Local db and local redis
     When I run "bin/ee site create bh-site-type-php-38.test --cache --type=php --local-db --with-db --with-local-redis"
@@ -113,7 +121,7 @@ Feature: Redis page cache of php sites (--cache, --with-local-redis) and ee site
     Then the return code should be 1
     And STDERR should contain "Proxy cache is not enabled on site."
 
-  # New (suspected): clean purges "<site>_page*" but php sites store pages under "<site>:http...", so nothing is purged.
+  # PHPT-8: clean purges "<site>_page*" but php sites store pages under "<site>:http...", so nothing is purged.
   # CACHE-1: the purge also runs `docker exec -it`, which fails without a TTY (or hangs under nested ptys), hence the timeout.
   @known-bug
   Scenario: ee site clean --page purges the php page cache in the global redis
@@ -126,7 +134,7 @@ Feature: Redis page cache of php sites (--cache, --with-local-redis) and ee site
     And STDOUT should contain "Success: Page cache cleared for bh-site-type-php-35.test"
     And the global redis should not have keys matching "bh-site-type-php-35.test:*"
 
-  # New (suspected): clean_site_cache() always targets the global redis container, never the site's local redis.
+  # PHPT-9: clean_site_cache() always targets the global redis container, never the site's local redis.
   @known-bug
   Scenario: ee site clean purges the page cache of a local-redis site
     Given a php site "bh-site-type-php-36.test" created with "--cache --with-local-redis" exists

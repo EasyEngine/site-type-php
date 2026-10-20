@@ -30,6 +30,7 @@ Feature: Site Redirection
   Scenario: Deleting a site removes its redirect config
     Given the hosts file maps "www.bh-site-type-php-91.test" to "127.0.0.1"
     And a php site "bh-site-type-php-91.test" exists
+    And the file "/opt/easyengine/services/nginx-proxy/conf.d/bh-site-type-php-91.test-redirect.conf" should exist
     When I run "bin/ee site delete bh-site-type-php-91.test --yes"
     Then the command should succeed
     And the file "/opt/easyengine/services/nginx-proxy/conf.d/bh-site-type-php-91.test-redirect.conf" should not exist

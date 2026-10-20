@@ -115,9 +115,10 @@ Feature: SSL on php sites (create --ssl=self|custom|inherit|le, update --ssl)
     And the site "bh-site-type-php-80.test" should have the field "site_ssl" set to "self"
 
   # Self-signed certificates are always wildcard (site-command 5c34be8, v3.8.1), so the refusal is checked with LE; it fails before any ACME call.
+  # A site that never had SSL: one that had --ssl=self keeps site_ssl_wildcard=1 after --ssl=off, and would go on to request a wildcard certificate.
   Scenario: Switching a normal SSL site to wildcard SSL is refused
-    Given a php site "bh-site-type-php-88.test" exists
-    When I run "bin/ee site update bh-site-type-php-88.test --ssl=le --wildcard"
+    Given a php site "bh-site-type-php-200.test" exists
+    When I run "bin/ee site update bh-site-type-php-200.test --ssl=le --wildcard"
     Then the return code should be 1
     And STDERR should contain "Update from normal SSL to wildcard SSL is not supported yet."
 

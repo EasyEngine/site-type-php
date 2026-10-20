@@ -12,7 +12,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | name normalisation: `http://` stripped, trailing `/` stripped, lowercased (`https://` shares the code path, not tested) | create.feature "The site name is normalised" |
 | name without a dot gets `.test` | create.feature "A site name without a dot gets the .test TLD" |
 | duplicate site name refused, first site untouched | create.feature "Creating the same site twice fails" |
-| site name validation (SEC-1) | create.feature "A site name with shell syntax is rejected" `@known-bug @security` |
+| site name validation (SEC-1) | create.feature "A site name with shell syntax is rejected" `@security`, regular since the v4.13.2 fix (#117) |
 | unknown flag refused | create.feature "An unknown flag is rejected" |
 | unknown `--type` refused | site.feature "An unknown site type is rejected" |
 | `--cache` (global redis) | cache.feature scenarios 1-4 (DB flags, main.conf, networks, HIT from redis, BYPASS on query string) |
@@ -134,7 +134,7 @@ Estimated coverage: about 88% of the inventory items above (php-specific items: 
 
 ## Known bugs exercised (`@known-bug`, 19 scenarios incl. outline examples)
 
-Every `@known-bug` scenario asserts the correct behaviour, so it fails until the bug is fixed, and names its issues.md ID in a comment: SEC-1, DB-1 (2), MIG-16, CACHE-1, and the site-type-php section `PHPT-*` (cross-referenced with the site-type-wp `WPT-*` entries for the shared DB-name collision):
+Every `@known-bug` scenario asserts the correct behaviour, so it fails until the bug is fixed, and names its issues.md ID in a comment: DB-1 (2), MIG-16, CACHE-1, and the site-type-php section `PHPT-*` (cross-referenced with the site-type-wp `WPT-*` entries for the shared DB-name collision): SEC-1 is fixed in v4.13.2 (site-type-php#117, site-command#509) and its scenario is regular since Behat r2 (2026-10-19).
 
 | ID | Severity | Scenario(s) |
 |---|---|---|

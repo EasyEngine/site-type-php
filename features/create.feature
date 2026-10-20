@@ -194,9 +194,9 @@ Feature: Create a plain php site
     And the site "bh-site-type-php-6.test" should have the field "site_type" set to "php"
     And the site "bh-site-type-php-6.test" should have the field "php_version" set to "8.3"
 
-  # SEC-1: the site name reaches shell sinks unescaped (volume commands run from the core root). Benign payload that
+  # SEC-1 (fixed in v4.13.2, site-type-php#117 and site-command#509), regression check: the site name used to reach shell sinks unescaped (volume commands run from the core root). Benign payload that
   # survives the lowercasing: writes ./bhstpsec1 there, which the scenario cleanup removes.
-  @known-bug @security
+  @security
   Scenario: A site name with shell syntax is rejected and never executed
     When I run "bin/ee site create 'bh-site-type-php-5$(id>bhstpsec1).test' --type=php"
     Then the command should fail

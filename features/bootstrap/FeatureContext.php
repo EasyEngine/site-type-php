@@ -1890,7 +1890,8 @@ class FeatureContext implements Context
 			return substr_count( $b, '.' ) - substr_count( $a, '.' );
 		} );
 		foreach ( $sites as $site ) {
-			self::run( sprintf( 'timeout 600 %s site delete %s --yes', $ee, escapeshellarg( $site ) ), realpath( EE_ROOT ) );
+			// --foreground: in a background process group the `docker exec -it` of a cache purge stops on SIGTTOU (with timeout itself) and hangs forever.
+			self::run( sprintf( 'timeout --foreground -k 30 600 %s site delete %s --yes', $ee, escapeshellarg( $site ) ), realpath( EE_ROOT ) );
 		}
 
 		$remaining = array_column( self::sqliteRows( 'SELECT site_url FROM sites' ), 'site_url' );

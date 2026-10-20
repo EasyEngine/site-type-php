@@ -158,7 +158,8 @@ Other notes from the code: `--php=latest` maps to the php8.4 image, not the newe
 ## Tags
 
 - `@known-bug` (24): expected to fail until fixed; exclude with `--tags='~@known-bug'`.
-- `@le` (1): issues one Let's Encrypt certificate for `bh-site-type-php-1.ee4-test.rt.gw` (plus www) and deletes the site in the same scenario. The name is fixed, so more than 5 runs in a week hit LE's duplicate-certificate limit. Needs `le-mail` in config.yml (checked first: stdin is /dev/null, so ee can't prompt).
+- `@le` (1): issues one Let's Encrypt certificate for `bh-site-type-php-1.ee4-test.rt.gw` (plus www) and deletes the site in the same scenario. The name is fixed, so more than 5 runs in a week hit LE's duplicate-certificate limit. Needs `le-mail` in config.yml (checked first: stdin is /dev/null, so ee can't prompt). On CI it runs against Pebble (`behat/ci/pebble-setup.sh`): the issuer check reads `EE_BEHAT_LE_ISSUER` and the DNS check `EE_BEHAT_LE_DNS_SERVER` (defaults: Let's Encrypt, 1.1.1.1).
+- `@le-real`: none; the `@le` scenario passes on Pebble.
 - `@destructive` (3): `update --proxy-cache` restarts the global nginx-proxy container (self-restoring); the blank-alias and space-alias known bugs render an invalid nginx-proxy config for the ~2 minutes until their create rolls back (proxy reloads for every site fail meanwhile).
 - `@slow` (12): the PHP version matrix (one site per version).
 - `@security` (1): the SEC-1 payload (benign: `id>bhstpsec1` in the core root, removed after the scenario and by the cleanup).

@@ -220,8 +220,7 @@ class FeatureContext implements Context
 	{
 		$command_output = $this->streamOf( $this->lastCommand(), $output_stream );
 
-		$expected_out = isset($expected_output->getStrings()[0]) ? $expected_output->getStrings()[0] : '';
-		if (strpos($command_output, $expected_out) === false) {
+		if (strpos($command_output, $expected_output->getRaw()) === false) {
 			throw new Exception("Actual output is:\n" . $command_output);
 		}
 	}
@@ -233,8 +232,7 @@ class FeatureContext implements Context
 	{
 		$command_output = $this->streamOf( $this->commandAt( $index ), $output_stream );
 
-		$expected_out = isset($expected_output->getStrings()[0]) ? $expected_output->getStrings()[0] : '';
-		if (strpos($command_output, $expected_out) === false) {
+		if (strpos($command_output, $expected_output->getRaw()) === false) {
 			throw new Exception("Actual output is:\n" . $command_output);
 		}
 	}

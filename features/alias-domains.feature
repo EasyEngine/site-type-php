@@ -43,8 +43,7 @@ Feature: Alias domains of php sites (create --alias-domains, update --add/--dele
     And the site "bh-site-type-php-78.test" should have the field "alias_domains" set to "bh-site-type-php-78.test,bh-site-type-php-78-a.test,bh-site-type-php-78-b.test"
     And a GET request to "http://bh-site-type-php-78-b.test/" via "127.0.0.1" should return 200
 
-  # Regression for blank entries (fixed by site-type-php #114, merged 2026-09-25). A regression renders an invalid
-  # nginx-proxy config (`upstream  {`) that breaks proxy reloads for every site for ~2 minutes: hence @destructive.
+  # Regression check for blank entries (fixed by EasyEngine/site-type-php#114). A regression renders an invalid nginx-proxy config (`upstream  {`) that breaks proxy reloads for every site for ~2 minutes: hence @destructive.
   @destructive
   Scenario: Empty entries in --alias-domains are dropped
     When I run "bin/ee site create bh-site-type-php-75.test --type=php --alias-domains='bh-site-type-php-75-a.test,,bh-site-type-php-75-b.test,'"
@@ -53,7 +52,7 @@ Feature: Alias domains of php sites (create --alias-domains, update --add/--dele
     And the file "/opt/easyengine/sites/bh-site-type-php-75.test/docker-compose.yml" should contain "VIRTUAL_HOST=${VIRTUAL_HOST},bh-site-type-php-75-a.test,bh-site-type-php-75-b.test"
     And the file "/opt/easyengine/sites/bh-site-type-php-75.test/docker-compose.yml" should not contain ",,"
 
-  # AUTH-1 regression: an alias like _wildcard.<site> could overwrite proxy auth files (fixed by site-type-php #114).
+  # Regression check: an alias like _wildcard.<site> could overwrite proxy auth files (fixed by EasyEngine/site-type-php#114).
   Scenario Outline: An alias domain that is not a valid hostname is refused
     When I run "bin/ee site create <site> --type=php --alias-domains='<alias>'"
     Then the return code should be 1

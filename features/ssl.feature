@@ -122,7 +122,7 @@ Feature: SSL on php sites (create --ssl=self|custom|inherit|le, update --ssl)
     Then the return code should be 1
     And STDERR should contain "Update from normal SSL to wildcard SSL is not supported yet."
 
-  # PHPT-10 / SC-3 (fixed in site-command fix/proxy-cache-rollback-and-le-alias): update_ssl() refused --ssl=off for self-signed creates, which store site_ssl_wildcard=1.
+  # Fixed by EasyEngine/site-command#505: update_ssl() refused --ssl=off for self-signed creates, which store site_ssl_wildcard=1.
   Scenario: SSL of a site created with --ssl=self can be disabled
     Given a php site "bh-site-type-php-89.test" created with "--ssl=self" exists
     When I run "bin/ee site update bh-site-type-php-89.test --ssl=off"

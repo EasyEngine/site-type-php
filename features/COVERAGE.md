@@ -12,7 +12,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | name normalisation: `http://` stripped, trailing `/` stripped, lowercased (`https://` shares the code path, not tested) | create.feature "The site name is normalised" |
 | name without a dot gets `.test` | create.feature "A site name without a dot gets the .test TLD" |
 | duplicate site name refused, first site untouched | create.feature "Creating the same site twice fails" |
-| site name validation (SEC-1) | create.feature "A site name with shell syntax is rejected" `@security`, regular since the v4.13.2 fix (#117) |
+| site name validation | create.feature "A site name with shell syntax is rejected" `@security`, regression check for the v4.13.2 fix (EasyEngine/site-type-php#117, EasyEngine/site-command#509) |
 | unknown flag refused | create.feature "An unknown flag is rejected" |
 | unknown `--type` refused | site.feature "An unknown site type is rejected" |
 | `--cache` (global redis) | cache.feature scenarios 1-4 (DB flags, main.conf, networks, HIT from redis, BYPASS on query string) |
@@ -27,10 +27,10 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `--local-db` without `--with-db` (ignored) | database.feature "--local-db without --with-db creates no database at all" |
 | remote `--dbhost=host:port` with credentials | database.feature "A remote --dbhost with host:port and existing credentials" (uses `global-db:3306` as the "remote") |
 | remote `--dbhost` needs `--dbuser` and `--dbpass` | database.feature "A remote --dbhost needs --dbuser and --dbpass" |
-| `--skip-check` | database.feature "--skip-check creates the site without probing the remote db" (only proves the create and port parsing: nothing probes today, PHPT-5) |
+| `--skip-check` | database.feature "--skip-check creates the site without probing the remote db" (only proves the create and port parsing: nothing probes a remote db today) |
 | remote DB verification / DB auto-create / non-empty DB check | not covered yet: remote credentials are never checked, so an unreachable remote db host doesn't fail the create (its scenario comes back with the fix); DB auto-create and the non-empty-DB check: not covered, need a MariaDB reachable from the default bridge network (the verify container), which the test host doesn't provide |
-| `--force` (reset non-empty remote DB) | not covered: dead code today (PHPT-5), needs a reachable remote MariaDB |
-| DB name / user collisions on rollback | database.feature: `--dbname`/`--dbuser` of another site refused (PHPT-1, PHPT-3), colliding default names refused by the volume check (PHPT-2), a taken default name gets a `_2` suffix, each on its own sites |
+| `--force` (reset non-empty remote DB) | not covered: dead code today (remote credentials are never checked), needs a reachable remote MariaDB |
+| DB name / user collisions on rollback | database.feature: `--dbname`/`--dbuser` of another site refused, colliding default names refused by the volume check, a taken default name gets a `_2` suffix, each on its own sites (regression checks for EasyEngine/site-command#503 and EasyEngine/site-type-php#115) |
 | mysql CLI in the php container against the global and local db | not covered yet: the MariaDB client in php8.2+ images demands TLS, which the EasyEngine MariaDB doesn't offer (its 2 scenarios come back with the fix) |
 | `--php=<v>` every supported version + `latest` | php-version.feature outline (12 examples, `@slow`) |
 | `--php` default 8.4 | create.feature "The site row holds the php defaults", "The compose file ..." |
@@ -43,8 +43,8 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | alias owned by another site / site name that is an alias | alias-domains.feature scenarios 4-5 |
 | alias trimming | alias-domains.feature "Spaces around alias domains are trimmed" |
 | alias that is an existing site | not covered yet: create checks aliases only against other sites' aliases, not their names (its scenario comes back with the fix) |
-| blank alias entries | alias-domains.feature `@destructive` regression (fixed by site-type-php #114, merged 2026-09-25; a regression breaks the nginx-proxy config until the rollback) |
-| invalid alias names (AUTH-1) | alias-domains.feature outline, regression (fixed by #114; 3 examples, the one with a space is also `@destructive`) |
+| blank alias entries | alias-domains.feature `@destructive` regression (fixed by EasyEngine/site-type-php#114; a regression breaks the nginx-proxy config until the rollback) |
+| invalid alias names (e.g. `_wildcard.<site>`, which could overwrite proxy auth files) | alias-domains.feature outline, regression (fixed by EasyEngine/site-type-php#114; 3 examples, the one with a space is also `@destructive`) |
 | `--public-dir` (relative, full path, nested, traversal sanitised, with cache, outside files not served) | public-dir.feature |
 | bare `--public-dir` | not covered yet: a bare `--public-dir` becomes the document root `1` (its scenario comes back with the fix) |
 | `--skip-status-check` | create.feature "--admin-email is stored and shown, --skip-status-check skips the HTTP probe" |
@@ -52,7 +52,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `--ssl=custom --ssl-key --ssl-crt` | ssl.feature "Create a php site with a custom certificate" |
 | custom SSL argument errors (missing key/crt, missing file) | ssl.feature 2 scenarios |
 | `--ssl=inherit` (no parent, parent with wildcard, with `--wildcard`) | ssl.feature 3 scenarios |
-| `--ssl=<unknown>` (rejected only after the site is built, PHPT-17) | ssl.feature "--ssl with an unknown value fails and rolls back" |
+| `--ssl=<unknown>` (rejected only after the site is built) | ssl.feature "--ssl with an unknown value fails and rolls back" |
 | `--ssl=le` | ssl.feature `@le` (create, verified HTTPS, issuer, delete + revoke) |
 | `--wildcard` with `--ssl=le` | not covered: needs Cloudflare DNS-01 credentials (not configured here) |
 | rollback (`catch_clean`) leaves no site row, dir, volumes, containers or network | ssl.feature "--ssl with an unknown value" and "--ssl=inherit together with --wildcard" (real level-4 rollbacks); the other failing creates stop in validation and assert the row and dir only |
@@ -67,7 +67,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `.env`, `main.conf` (upstream, root, server_name, php vs redis blocks), `custom.ini`, `user.conf`, `admin-tools.conf`, `index.php`, `app/html` removed, `app` symlinked to the htdocs volume, `check.html` removed | create.feature "The site files are generated from the php templates" |
 | running containers (php, nginx, postfix; mailhog not started; + db/redis), labels, restart policy, networks | create.feature "The site containers, volumes and network are up", labels.feature, database/cache features |
 | docker volumes (8, or 11 with local db) and network labels | create.feature, labels.feature, database.feature |
-| volume prefix collision between names differing only in `.`/`-` | create.feature "A site name whose docker volumes collide with an existing site is refused" (PHPT-4) |
+| volume prefix collision between names differing only in `.`/`-` | create.feature "A site name whose docker volumes collide with an existing site is refused" (regression check for EasyEngine/site-command#503) |
 | `/etc/hosts` entry (http and self-signed only) | create.feature, ssl.feature, alias-domains.feature |
 | HTTP: 200 + PHP executes, pretty URLs, 404, hidden/backup files denied, fpm ping/status, nginx_status | create.feature "The site is reachable over HTTP and runs PHP", "nginx denies hidden and backup files", "The php-fpm status and ping endpoints are wired" |
 
@@ -110,7 +110,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `update --php` same version / invalid / `latest` / disabled / unknown site | php-version.feature 4 scenarios |
 | `update --add-alias-domains` / `--delete-alias-domains` (+ all error paths, wildcard) | alias-domains.feature 9 update scenarios |
 | `update --ssl=self` / `--ssl=off` / already enabled / already disabled / `--ssl=off --wildcard` (on a wildcard site) / normal to wildcard | ssl.feature 3 scenarios |
-| `update --ssl=off` on a site created with `--ssl=self` | ssl.feature "SSL of a site created with --ssl=self can be disabled" (PHPT-10, regular since site-command `fix/proxy-cache-rollback-and-le-alias`; fails on develop until merged) |
+| `update --ssl=off` on a site created with `--ssl=self` | ssl.feature "SSL of a site created with --ssl=self can be disabled" (regression check, fixed by EasyEngine/site-command#505) |
 | `update --ssl=le`, `--wildcard` | not covered (LE budget; wildcard needs DNS-01) |
 | `update --proxy-cache=on/off` (conf.d, vhost.d incl. alias, already-on error) | lifecycle.feature `@destructive` (restarts nginx-proxy) |
 | `--proxy-cache-max-size/-max-time/-key-zone-size` | not covered: site-command generic |
@@ -126,7 +126,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `clean` without cache / `--proxy` without proxy cache | cache.feature "ee site clean on a site without cache" |
 | `clean --page` on a php cache site | not covered yet: clean purges `<site>_page*` but php sites store pages under `<site>:http...`, so nothing is purged (its scenario comes back with the fix) |
 | `clean` on a local-redis site | not covered yet: clean always targets the global redis, never the site's local redis (its scenario comes back with the fix) |
-| `clean --object`, `clean --proxy` with proxy cache | not covered: `--object` shares PHPT-8's path; `--proxy` runs `docker exec -it` (CACHE-1) |
+| `clean --object`, `clean --proxy` with proxy cache | not covered: `--object` shares the `clean --page` path, which purges the wrong keys; `--proxy` runs `docker exec -it`, which fails without a TTY |
 | `ssl-verify`, `ssl-info`, `ssl-renew`, `share`, `clone`, `sync`, `backup`, `restore` | not covered here: generic, owned by the site-command suite (no php-specific code) |
 | `site_cleanup` hook on delete | indirectly (delete scenarios); hook consumers are tested in their packages |
 
@@ -140,22 +140,22 @@ Estimated coverage: about 88% of the inventory items above (php-specific items: 
 
 Scenarios for open bugs aren't in the suite: each comes back with the PR that fixes its bug. The inventory above marks them "not covered yet". Bugs without a clean black-box assertion aren't tested: php sites render `.env`/`php.ini` from site-type-wp's templates; site-command's `ltrim($url, 'www.')` character-list bug; `var_dump()` in the inherit error; `--ssl` options not enforced on create (documented by the `--ssl=bogus` rollback scenario); no `/etc/hosts` entry for custom/inherit SSL sites.
 
-Other notes from the code: `--php=latest` maps to the php8.4 image, not the newest supported (8.5), maybe intended; `update --add/--delete-alias-domains` doesn't regenerate `main.conf` (stale `server_name`, harmless); a site created with `--dbhost=global-db:<port>` and user-supplied credentials is stored with `db_host=global-db`, so `site delete` drops that pre-existing database and user. The old suite's label assertion was inverted and its mysql checks passed vacuously (DB-1); both fixed in this context.
+Other notes from the code: `--php=latest` maps to the php8.4 image, not the newest supported (8.5), maybe intended; `update --add/--delete-alias-domains` doesn't regenerate `main.conf` (stale `server_name`, harmless); a site created with `--dbhost=global-db:<port>` and user-supplied credentials is stored with `db_host=global-db`, so `site delete` drops that pre-existing database and user. The old suite's label assertion was inverted and its mysql checks passed vacuously; both fixed in this context.
 
 ## Tags
 
-- `@le` (1): issues one Let's Encrypt certificate for `bh-site-type-php-1.ee4-test.rt.gw` (plus www) and deletes the site in the same scenario. The name is fixed, so more than 5 runs in a week hit LE's duplicate-certificate limit. Needs `le-mail` in config.yml (checked first: stdin is /dev/null, so ee can't prompt). On CI it runs against Pebble (`behat/ci/pebble-setup.sh`): the issuer check reads `EE_BEHAT_LE_ISSUER` and the DNS check `EE_BEHAT_LE_DNS_SERVER` (defaults: Let's Encrypt, 1.1.1.1).
+- `@le` (1): issues one Let's Encrypt certificate for `bh-site-type-php-1.ee4-test.rt.gw` (plus www) and deletes the site in the same scenario. The name is fixed, so more than 5 runs in a week hit LE's duplicate-certificate limit. Needs `le-mail` in config.yml (checked first: stdin is /dev/null, so ee can't prompt). On CI it runs against Pebble (`.github/behat/pebble-setup.sh`): the issuer check reads `EE_BEHAT_LE_ISSUER` and the DNS check `EE_BEHAT_LE_DNS_SERVER` (defaults: Let's Encrypt, 1.1.1.1).
 - `@le-real`: none; the `@le` scenario passes on Pebble.
-- `@destructive` (3): `update --proxy-cache` restarts the global nginx-proxy container (self-restoring); the blank-alias and space-alias regressions (fixed by #114, merged 2026-09-25; they passed on develop in https://github.com/mrrobot47/site-type-php/actions/runs/36099146918 and are regular scenarios since) would render an invalid nginx-proxy config for ~2 minutes if they regressed.
+- `@destructive` (3): `update --proxy-cache` restarts the global nginx-proxy container (self-restoring); the blank-alias and space-alias regressions (fixed by EasyEngine/site-type-php#114) would render an invalid nginx-proxy config for ~2 minutes if they regressed.
 - `@slow` (12): the PHP version matrix (one site per version).
-- `@security` (1): the SEC-1 payload (benign: `id>bhstpsec1` in the core root, removed after the scenario and by the cleanup).
+- `@security` (1): the shell-syntax site name payload (benign: `id>bhstpsec1` in the core root, removed after the scenario and by the cleanup).
 - `@remote`: none (no backups in this package).
 
 ## Environment rules followed
 
 - Sites: `bh-site-type-php-<n>.test` (and `sub.`/`sub2.` children, `-<n>-x` variants); aliases `bh-site-type-php-<n>-<x>.test`; global-db names `bh_stp_*` or the derived `bh_site_type_php_*`. `FeatureContext::cleanupTestState()` runs before the suite, after each feature and after the suite, and only touches these names: sites (children first), orphaned containers/networks/volumes/site dirs/proxy files, the suite's redis page-cache keys, `bh_stp_*`/`bh_site_type_php_*` databases and `bh_stp_*`/`bh-site-type-php-*` users that no remaining site row references, and `/etc/hosts` lines with the `# behat:site-type-php` marker or whose every name is a suite name.
-- Data-loss guards (PHPT-1..4): the suite refuses to start when a foreign site's volume prefix, derived db name, db name or db user could collide with the suite's names; the db setup steps only accept suite names; the data-loss known bugs only ever point the buggy rollback at databases and users the scenario itself created.
-- Commands run with stdin on `/dev/null`, so docker/compose never allocate a TTY (no CACHE-1 hangs; `docker exec -it` fails fast instead).
+- Data-loss guards: the suite refuses to start when a foreign site's volume prefix, derived db name, db name or db user could collide with the suite's names; the db setup steps only accept suite names; the collision scenarios only ever point a failed create's rollback at databases and users the scenario itself created.
+- Commands run with stdin on `/dev/null`, so docker/compose never allocate a TTY (no hangs under nested ptys; `docker exec -it` fails fast instead).
 - HTTP checks for aliases/extra names pin the host to 127.0.0.1 with curl's `--resolve` (keeps SNI for HTTPS); 127.0.0.1 arrives at nginx-proxy as 10.1.0.1 and bypasses HTTP auth. Only the `@le` scenario goes through public DNS to the public IP (it would get a 401 if global HTTP auth were enabled).
 - Temporary files (custom certs) live in `/var/tmp/bh-site-type-php`, removed after the suite.
 

@@ -170,8 +170,7 @@ Feature: Create a plain php site
     And the site "bh-site-type-php-7.test" should have the field "app_sub_type" set to "mysql"
     And the site "bh-site-type-php-7.test" should have the field "db_host" set to "global-db"
 
-  # SEC-1 (fixed in v4.13.2, site-type-php#117 and site-command#509), regression check: the site name used to reach shell sinks unescaped (volume commands run from the core root). Benign payload that
-  # survives the lowercasing: writes ./bhstpsec1 there, which the scenario cleanup removes.
+  # Regression check (fixed in v4.13.2 by EasyEngine/site-type-php#117 and EasyEngine/site-command#509): the site name used to reach shell commands unescaped (volume commands run from the core root). The benign payload survives the lowercasing and writes ./bhstpsec1 there, which the scenario cleanup removes.
   @security
   Scenario: A site name with shell syntax is rejected and never executed
     When I run "bin/ee site create 'bh-site-type-php-5$(id>bhstpsec1).test' --type=php"
@@ -179,8 +178,7 @@ Feature: Create a plain php site
     And STDERR should contain "Invalid site name"
     And the file "bhstpsec1" should not exist
 
-  # PHPT-4, core EE_DOCKER::get_docker_style_prefix(): volume names drop "." and "-", so both names below map to
-  # the prefix bhsitetypephp27test. Existing sites keep their volume names, so the second create is refused.
+  # Core's EE_DOCKER::get_docker_style_prefix() drops "." and "-" from volume names, so both names below map to the prefix bhsitetypephp27test; existing sites keep their volume names, so the second create is refused (EasyEngine/site-command#503).
   Scenario: A site name whose docker volumes collide with an existing site is refused
     Given a php site "bh-site-type-php-2-7.test" exists
     When I run "bin/ee site create bh-site-type-php-27.test --type=php"

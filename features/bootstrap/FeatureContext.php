@@ -392,7 +392,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * No `-it`: without a TTY `docker exec -it` fails, and under the harness's nested ptys it can hang (CACHE-1).
+	 * No `-it`: without a TTY `docker exec -it` fails, and under the harness's nested ptys it can hang.
 	 *
 	 * @Then Check global redis cache for :site
 	 */
@@ -421,7 +421,7 @@ class FeatureContext implements Context
 	}
 
 	/**
-	 * Uses the mysql CLI of the php image; see DB-1 for the TLS failure against global-db on php 8.2+.
+	 * Uses the mysql CLI of the php image; on php 8.2+ it fails against global-db, whose MariaDB doesn't offer the TLS that client demands.
 	 *
 	 * @Then Check local mysql database connection for :site
 	 */
@@ -441,7 +441,7 @@ class FeatureContext implements Context
 	/**
 	 * Checks the site's DB credentials with the mysql CLI inside its php container.
 	 *
-	 * The old version passed whenever `ee shell` printed nothing to stdout, even on failure (DB-1).
+	 * The old version passed whenever `ee shell` printed nothing to stdout, even on failure.
 	 *
 	 * @param string $site
 	 * @param string $db_type
@@ -477,7 +477,7 @@ class FeatureContext implements Context
 		$this->start_times = [];
 		chdir($this->ee_path);
 
-		// Marker file a SEC-1 payload may create in the working directory.
+		// Marker file the shell-syntax site name payload may create in the working directory.
 		if ( file_exists( EE_ROOT . '/bhstpsec1' ) ) {
 			unlink( EE_ROOT . '/bhstpsec1' );
 		}
@@ -488,7 +488,7 @@ class FeatureContext implements Context
 	 */
 	public static function prepareSuite( BeforeSuiteScope $scope )
 	{
-		// Volume prefixes drop "." and "-" and default db names map them to "_" (PHPT-1..4), and the create rollback drops
+		// Volume prefixes drop "." and "-" and default db names map them to "_", and the create rollback drops
 		// colliding databases and users. Refuse to run next to a foreign site whose volumes, db or db user could collide.
 		foreach ( self::sqliteRows( 'SELECT site_url, db_name, db_user FROM sites' ) as $row ) {
 			if ( 1 === preg_match( self::SITE_PATTERN, $row['site_url'] ) ) {
@@ -1552,7 +1552,7 @@ class FeatureContext implements Context
 
 	/**
 	 * Runs a shell command with stdin on /dev/null, so docker/compose never allocate a TTY: under the harness's
-	 * nested ptys a TTY exec can hang (CACHE-1), and without one `docker exec -it` fails fast instead.
+	 * nested ptys a TTY exec can hang, and without one `docker exec -it` fails fast instead.
 	 *
 	 * @return object command, stdout, stderr, return_code (same fields as EE's ProcessRun).
 	 */
@@ -1960,7 +1960,7 @@ class FeatureContext implements Context
 		// Site roots and proxy files left by failed creates.
 		foreach ( (array) glob( EE_SITE_ROOT . '/*' ) as $dir ) {
 			$name = basename( $dir );
-			// Any name, so a dir left by the SEC-1 scenario's `$(...)` site name goes too.
+			// Any name, so a dir left by the shell-syntax site name scenario's `$(...)` site name goes too.
 			if ( $orphan( $name ) ) {
 				self::run( 'rm -rf -- ' . escapeshellarg( $dir ) );
 			}
@@ -2014,7 +2014,7 @@ class FeatureContext implements Context
 			}
 		}
 
-		// The SEC-1 payload can run again when that site is deleted above.
+		// The shell-syntax site name payload can run again when that site is deleted above.
 		if ( file_exists( EE_ROOT . '/bhstpsec1' ) ) {
 			unlink( EE_ROOT . '/bhstpsec1' );
 		}

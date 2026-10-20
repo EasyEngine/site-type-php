@@ -108,8 +108,7 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     Then the return code should be 1
     And STDERR should contain "`--dbuser` and `--dbpass` are required for remote db host."
 
-  # PHPT-5: nothing probes a remote db today, with or without --skip-check, so this only proves the create and the port
-  # parsing; the skip itself becomes testable once PHPT-5 is fixed.
+  # Nothing probes a remote db today, with or without --skip-check, so this only proves the create and the port parsing; the skip itself becomes testable once remote credentials are checked.
   Scenario: --skip-check creates the site without probing the remote db, and the port is parsed
     When I run "bin/ee site create bh-site-type-php-18.test --type=php --with-db --dbhost=bh-stp-unreachable.invalid:3307 --dbuser=bh_stp_u18 --dbpass=bh-stp-p18 --skip-check"
     Then the command should succeed
@@ -120,7 +119,7 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the site "bh-site-type-php-18.test" should have an empty "db_root_password"
     And the "db" service of site "bh-site-type-php-18.test" should not exist
 
-  # PHPT-1: another site's --dbname is refused up front; the rollback only drops what the create itself made.
+  # Another site's --dbname is refused up front; the rollback only drops what the create itself made.
   Scenario: Reusing another site's --dbname fails without dropping that database
     Given a php site "bh-site-type-php-20.test" created with "--with-db --dbname=bh_stp_shared20 --dbuser=bh_stp_user20 --dbpass=Bh-Stp-Pass-20" exists
     And the global database "bh_stp_shared20" contains the table "bh_marker"
@@ -132,7 +131,7 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the global database "bh_stp_shared20" should contain the table "bh_marker"
     And the php service of site "bh-site-type-php-20.test" should be able to connect to the site database
 
-  # PHPT-3: another site's --dbuser is refused up front, so its user and password are untouched.
+  # Another site's --dbuser is refused up front, so its user and password are untouched.
   Scenario: Reusing another site's --dbuser fails without dropping that user
     Given a php site "bh-site-type-php-23.test" created with "--with-db --dbname=bh_stp_db23 --dbuser=bh_stp_user23 --dbpass=Bh-Stp-Pass-23" exists
     When I run "bin/ee site create bh-site-type-php-24.test --type=php --with-db --dbuser=bh_stp_user23 --dbpass=Bh-Stp-Other-24"
@@ -143,8 +142,7 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the global database user "bh_stp_user23" should exist
     And the php service of site "bh-site-type-php-23.test" should be able to connect to the site database
 
-  # PHPT-2: the default db name replaces "." and "-" with "_", so these two names collide. The pair also shares volume
-  # names (PHPT-4), so the second create is refused before the database step.
+  # The default db name replaces "." and "-" with "_", so these two names collide; the pair also shares volume names, so the second create is refused before the database step.
   Scenario: Two site names that map to the same default db name do not destroy each other's database
     Given a php site "bh-site-type-php-22.x.test" created with "--with-db" exists
     And the global database "bh_site_type_php_22_x_test" contains the table "bh_marker"
@@ -155,7 +153,7 @@ Feature: Database options of php sites (--with-db, --local-db, --dbhost, --dbnam
     And the global database "bh_site_type_php_22_x_test" should contain the table "bh_marker"
     And the php service of site "bh-site-type-php-22.x.test" should be able to connect to the site database
 
-  # PHPT-2: a default db name that is already taken (here by a database no site owns) gets a numbered suffix.
+  # A default db name that is already taken (here by a database no site owns) gets a numbered suffix.
   Scenario: A taken default db name gets a numbered suffix and the existing database is kept
     Given the global database "bh_site_type_php_28_test" with user "bh_stp_user28" identified by "Bh-Stp-Pass-28" exists
     And the global database "bh_site_type_php_28_test" contains the table "bh_marker"

@@ -944,7 +944,11 @@ class FeatureContext implements Context
 	 */
 	public function theSiteShouldHaveRunningContainers( $site, $count )
 	{
-		$ids = $this->lines( self::run( 'docker ps -q -f ' . escapeshellarg( 'label=io.easyengine.site=' . $site ) )->stdout );
+		$result = self::run( 'docker ps -q -f ' . escapeshellarg( 'label=io.easyengine.site=' . $site ) );
+		if ( 0 !== $result->return_code ) {
+			throw new Exception( "Unable to list site containers.\n" . $this->describe( $result ) );
+		}
+		$ids = $this->lines( $result->stdout );
 		if ( count( $ids ) !== (int) $count ) {
 			throw new Exception( sprintf( "Expected %d running containers for %s, found %d.\n%s", $count, $site, count( $ids ), $this->siteContainersSummary( $site ) ) );
 		}
@@ -966,7 +970,11 @@ class FeatureContext implements Context
 	 */
 	public function theDockerNetworkShouldExist( $network, $not )
 	{
-		$exists = 0 === self::run( 'docker network inspect ' . escapeshellarg( $network ) )->return_code;
+		$result = self::run( 'docker network ls --format ' . escapeshellarg( '{{.Name}}' ) );
+		if ( 0 !== $result->return_code ) {
+			throw new Exception( "Unable to list Docker networks.\n" . $this->describe( $result ) );
+		}
+		$exists = in_array( $network, $this->lines( $result->stdout ), true );
 		if ( $exists === ( '' !== $not ) ) {
 			throw new Exception( "Docker network $network " . ( $exists ? 'exists.' : 'does not exist.' ) );
 		}
@@ -990,7 +998,11 @@ class FeatureContext implements Context
 	public function theServiceShouldBeAttachedToNetwork( $service, $site, $not, $network )
 	{
 		$id       = $this->requireServiceContainer( $site, $service );
-		$networks = $this->lines( self::run( 'docker inspect -f ' . escapeshellarg( '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{"\n"}}{{end}}' ) . ' ' . $id )->stdout );
+		$result   = self::run( 'docker inspect -f ' . escapeshellarg( '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{"\n"}}{{end}}' ) . ' ' . $id );
+		if ( 0 !== $result->return_code ) {
+			throw new Exception( "Unable to inspect the $service container of $site.\n" . $this->describe( $result ) );
+		}
+		$networks = $this->lines( $result->stdout );
 		$attached = in_array( $network, $networks, true );
 		if ( $attached === ( '' !== $not ) ) {
 			throw new Exception( sprintf( "The %s service of %s is %s to %s. Networks: %s", $service, $site, $attached ? 'attached' : 'not attached', $network, implode( ', ', $networks ) ) );
@@ -1265,7 +1277,7 @@ class FeatureContext implements Context
 		$this->response = $this->httpRequest( $url, [ 'resolve' => $ip ] );
 		if ( '' === $not ) {
 			$this->theResponseCodeShouldBe( $code );
-		} elseif ( (int) $code === $this->response['code'] ) {
+		} elseif ( $this->noHttpResponse() || (int) $code === $this->response['code'] ) {
 			throw new Exception( "Expected anything but HTTP $code.\n" . $this->describeResponse() );
 		}
 	}
@@ -1298,7 +1310,8 @@ class FeatureContext implements Context
 		$deadline = time() + (int) $seconds;
 		do {
 			$this->response = $this->httpRequest( $url, $options );
-			if ( ( (int) $code === $this->response['code'] ) === $want ) {
+			// A transport error doesn't prove "no longer N"; keep polling.
+			if ( ( $want || ! $this->noHttpResponse() ) && ( (int) $code === $this->response['code'] ) === $want ) {
 				return;
 			}
 			sleep( 2 );
@@ -1325,6 +1338,9 @@ class FeatureContext implements Context
 	 */
 	public function theResponseShouldContain( $not, $text )
 	{
+		if ( '' !== $not && $this->noHttpResponse() ) {
+			throw new Exception( "No HTTP response to check.\n" . $this->describeResponse() );
+		}
 		$found = false !== strpos( $this->requireResponse()['body'], $text );
 		if ( $found === ( '' !== $not ) ) {
 			throw new Exception( sprintf( "The response body %s %s.\n%s", $found ? 'contains' : 'does not contain', $text, $this->describeResponse() ) );
@@ -1336,6 +1352,9 @@ class FeatureContext implements Context
 	 */
 	public function theResponseHeaderShouldContain( $header, $not, $text )
 	{
+		if ( '' !== $not && $this->noHttpResponse() ) {
+			throw new Exception( "No HTTP response to check.\n" . $this->describeResponse() );
+		}
 		$value = $this->responseHeader( $header );
 		$found = null !== $value && false !== strpos( $value, $text );
 		if ( $found === ( '' !== $not ) ) {
@@ -1348,6 +1367,9 @@ class FeatureContext implements Context
 	 */
 	public function theResponseShouldHaveTheHeader( $not, $header )
 	{
+		if ( '' !== $not && $this->noHttpResponse() ) {
+			throw new Exception( "No HTTP response to check.\n" . $this->describeResponse() );
+		}
 		$present = null !== $this->responseHeader( $header );
 		if ( $present === ( '' !== $not ) ) {
 			throw new Exception( sprintf( "Header %s is %s.\n%s", $header, $present ? 'present' : 'missing', $this->describeResponse() ) );
@@ -1733,7 +1755,12 @@ class FeatureContext implements Context
 			escapeshellarg( 'label=com.docker.compose.service=' . $service )
 		);
 
-		return implode( ' ', $this->lines( self::run( $cmd )->stdout ) );
+		$result = self::run( $cmd );
+		if ( 0 !== $result->return_code ) {
+			throw new Exception( "Unable to list site containers.\n" . $this->describe( $result ) );
+		}
+
+		return implode( ' ', $this->lines( $result->stdout ) );
 	}
 
 	private function requireServiceContainer( $site, $service )
@@ -1760,7 +1787,12 @@ class FeatureContext implements Context
 
 	private function siteVolumes( $site )
 	{
-		return $this->lines( self::run( 'docker volume ls -q -f label=org.label-schema.vendor=EasyEngine -f ' . escapeshellarg( 'label=io.easyengine.site=' . $site ) )->stdout );
+		$result = self::run( 'docker volume ls -q -f label=org.label-schema.vendor=EasyEngine -f ' . escapeshellarg( 'label=io.easyengine.site=' . $site ) );
+		if ( 0 !== $result->return_code ) {
+			throw new Exception( "Unable to list site volumes.\n" . $this->describe( $result ) );
+		}
+
+		return $this->lines( $result->stdout );
 	}
 
 	private function containerStartedAt( $id )
@@ -1875,6 +1907,14 @@ class FeatureContext implements Context
 		}
 
 		return null;
+	}
+
+	// Negative HTTP checks pass only on a real response.
+	private function noHttpResponse()
+	{
+		$r = $this->requireResponse();
+
+		return 0 === $r['code'] || '' !== $r['error'];
 	}
 
 	private function describeResponse()

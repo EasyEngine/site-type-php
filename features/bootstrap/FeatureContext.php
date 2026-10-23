@@ -1797,7 +1797,12 @@ class FeatureContext implements Context
 
 	private function containerStartedAt( $id )
 	{
-		return trim( self::run( 'docker inspect -f {{.State.StartedAt}} ' . $id )->stdout );
+		$result = self::run( 'docker inspect -f {{.State.StartedAt}} ' . $id );
+		if ( 0 !== $result->return_code ) {
+			throw new Exception( "Unable to inspect container $id.\n" . $this->describe( $result ) );
+		}
+
+		return trim( $result->stdout );
 	}
 
 	private function pinnedTag( $image )

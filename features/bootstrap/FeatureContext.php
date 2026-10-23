@@ -1959,11 +1959,20 @@ class FeatureContext implements Context
 	 */
 	private static function cleanupTestState()
 	{
+		// Every entry point: @BeforeSuite hooks run in declaration order, so prepareSuite() would clean up before the guard.
+		self::refuseRealAcmeOnCi();
 		$ee    = escapeshellarg( realpath( EE_ROOT ) . '/bin/ee' );
 		$sites = [];
-		foreach ( self::sqliteRows( 'SELECT site_url FROM sites' ) as $row ) {
+		foreach ( self::sqliteRows( 'SELECT site_url, alias_domains FROM sites' ) as $row ) {
 			if ( 1 === preg_match( self::SITE_PATTERN, $row['site_url'] ) ) {
 				$sites[] = $row['site_url'];
+				continue;
+			}
+			// The sweeps below treat any suite-pattern name without its own site row as an orphan.
+			foreach ( explode( ',', (string) $row['alias_domains'] ) as $alias ) {
+				if ( 1 === preg_match( self::SITE_PATTERN, trim( $alias ) ) ) {
+					throw new Exception( "Refusing to clean up: site {$row['site_url']} has the alias " . trim( $alias ) . ", which matches this suite's names." );
+				}
 			}
 		}
 		// Children (e.g. --ssl=inherit subdomains) first.

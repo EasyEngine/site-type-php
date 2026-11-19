@@ -35,7 +35,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `--php=<v>` every supported version + `latest` | php-version.feature outline (12 examples, `@slow`) |
 | `--php` default 8.5 | create.feature "The site row holds the php defaults", "The compose file ..." |
 | `--php` invalid values | create.feature outline "An unsupported --php value is rejected" (4 examples) |
-| `--php` loosely matching values (`8`, `7`, `8.40`, `8.4.1`) | not covered yet: a loose `in_array()` accepts them and the create fails late on a missing image (its outline, 4 examples, comes back with the fix) |
+| `--php` loosely matching values (`8`, `7`, `8.40`, `8.4.1`) | not covered: core's synopsis check compares loosely and lets them through (`8.4.1` only on PHP 7), then create() compares as strings and asks whether to continue with the fallback version (8.5, 7.4 or 5.6; `8.4.1` is refused as unsupported). The php type has no `--yes`, so the prompt reads stdin |
 | `--php=<v>` without `--type` (EE3 compat mapping) | not covered yet: the version is consumed as the EE3 `--php` type flag and dropped (its scenario comes back with the fix) |
 | EE3 `--mysql` compat flag | create.feature "The legacy --mysql flag creates a php site with a database" |
 | php 5.6 ini (sendmail) vs msmtp | php-version.feature outline `sendmail` column |

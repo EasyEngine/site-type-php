@@ -34,7 +34,7 @@ class PHP extends EE_Site_Command {
 	const DEFAULT_PHP_VERSION = '8.5';
 
 	/**
-	 * Versions `--php` accepts. Keep in sync with the create() docblock options.
+	 * Versions `--php` accepts, as strings for the strict check in create(). Keep in sync with the create() docblock options.
 	 */
 	const SUPPORTED_PHP_VERSIONS = [ '5.6', '7.0', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', 'latest' ];
 
@@ -221,7 +221,8 @@ class PHP extends EE_Site_Command {
 		$this->site_data['site_fs_path']      = WEBROOT . $this->site_data['site_url'];
 		$this->cache_type                     = \EE\Utils\get_flag_value( $assoc_args, 'cache' );
 		$this->site_data['site_ssl_wildcard'] = \EE\Utils\get_flag_value( $assoc_args, 'wildcard' );
-		$this->site_data['php_version']       = \EE\Utils\get_flag_value( $assoc_args, 'php', self::DEFAULT_PHP_VERSION );
+		// The dispatcher passes the docblock default as a float, and its loose options check lets through values like '8' or ' 8.5'.
+		$this->site_data['php_version']       = trim( (string) \EE\Utils\get_flag_value( $assoc_args, 'php', self::DEFAULT_PHP_VERSION ) );
 		$this->site_data['app_sub_type']      = 'php';
 
 		$this->site_data['site_container_fs_path'] = get_public_dir( $assoc_args );
@@ -244,13 +245,13 @@ class PHP extends EE_Site_Command {
 
 		$this->site_data['alias_domains'] = implode( ',', array_merge( [ $this->site_data['site_url'] ], $alias_domains ) );
 
-		if ( ! in_array( $this->site_data['php_version'], self::SUPPORTED_PHP_VERSIONS ) ) {
+		if ( ! in_array( $this->site_data['php_version'], self::SUPPORTED_PHP_VERSIONS, true ) ) {
 			$old_version = $this->site_data['php_version'];
-			$floor       = (int) floor( $this->site_data['php_version'] );
+			$floor       = is_numeric( $old_version ) ? (int) floor( $old_version ) : 0;
 			if ( 5 === $floor ) {
-				$this->site_data['php_version'] = 5.6;
+				$this->site_data['php_version'] = '5.6';
 			} elseif ( 7 === $floor ) {
-				$this->site_data['php_version'] = 7.4;
+				$this->site_data['php_version'] = '7.4';
 				$old_version                    .= ' yet';
 			} elseif ( 8 === $floor ) {
 				$this->site_data['php_version'] = self::DEFAULT_PHP_VERSION;

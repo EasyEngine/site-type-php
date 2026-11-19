@@ -21,7 +21,7 @@ Feature: info, list, enable, disable, refresh, restart, reload, proxy cache and 
     And the JSON in STDOUT should have "site_url" set to "bh-site-type-php-100.test"
     And the JSON in STDOUT should have "site_type" set to "php"
     And the JSON in STDOUT should have "app_sub_type" set to "php"
-    And the JSON in STDOUT should have "php_version" set to "8.4"
+    And the JSON in STDOUT should have "php_version" set to "8.5"
     And the JSON in STDOUT should have "site_enabled" set to "1"
     And the JSON in STDOUT should have "site_container_fs_path" set to "/var/www/htdocs"
 
@@ -127,7 +127,7 @@ Feature: info, list, enable, disable, refresh, restart, reload, proxy cache and 
     When I run "bin/ee site refresh bh-site-type-php-106.test"
     Then the command should succeed
     And the file "/opt/easyengine/sites/bh-site-type-php-106.test/docker-compose.yml" should not contain "# bh-compose-marker"
-    And the docker-compose file of site "bh-site-type-php-106.test" should use the pinned "easyengine/php8.4" image
+    And the docker-compose file of site "bh-site-type-php-106.test" should use the pinned "easyengine/php8.5" image
     And I wait until a GET request to "http://bh-site-type-php-106.test/" returns 200 within 60 seconds
 
   Scenario: site restart restarts nginx, php and the local db, not postfix

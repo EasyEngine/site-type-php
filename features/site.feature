@@ -54,7 +54,7 @@ Feature: Site command presence and usage errors
     And STDOUT should contain "[--wildcard]"
     And STDOUT should contain "[--force]"
     And STDOUT should contain "[--public-dir]"
-    And STDOUT should contain "default: 8.4"
+    And STDOUT should contain "default: 8.5"
 
   Scenario: Help for php site info, restart and reload shows the php variants
     When I run "bin/ee help site restart --type=php"

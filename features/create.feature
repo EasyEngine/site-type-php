@@ -17,7 +17,7 @@ Feature: Create a plain php site
     Then the site "bh-site-type-php-1.test" should be enabled
     And the site "bh-site-type-php-1.test" should have the field "site_type" set to "php"
     And the site "bh-site-type-php-1.test" should have the field "app_sub_type" set to "php"
-    And the site "bh-site-type-php-1.test" should have the field "php_version" set to "8.4"
+    And the site "bh-site-type-php-1.test" should have the field "php_version" set to "8.5"
     And the site "bh-site-type-php-1.test" should have the field "site_fs_path" set to "/opt/easyengine/sites/bh-site-type-php-1.test"
     And the site "bh-site-type-php-1.test" should have the field "site_container_fs_path" set to "/var/www/htdocs"
     And the site "bh-site-type-php-1.test" should have the field "alias_domains" set to "bh-site-type-php-1.test"
@@ -55,7 +55,7 @@ Feature: Create a plain php site
 
   Scenario: The compose file has the php services and no db or redis
     Given a php site "bh-site-type-php-1.test" exists
-    Then the docker-compose file of site "bh-site-type-php-1.test" should use the pinned "easyengine/php8.4" image
+    Then the docker-compose file of site "bh-site-type-php-1.test" should use the pinned "easyengine/php8.5" image
     And the docker-compose file of site "bh-site-type-php-1.test" should use the pinned "easyengine/nginx" image
     And the docker-compose file of site "bh-site-type-php-1.test" should use the pinned "easyengine/postfix" image
     And the docker-compose file of site "bh-site-type-php-1.test" should use the pinned "easyengine/mailhog" image
@@ -75,11 +75,11 @@ Feature: Create a plain php site
     And the site "bh-site-type-php-1.test" should have 3 running containers
     And the site "bh-site-type-php-1.test" should have 8 docker volumes
     And the docker network "bh-site-type-php-1.test" should exist
-    And the "php" service of site "bh-site-type-php-1.test" should use the pinned "easyengine/php8.4" image
+    And the "php" service of site "bh-site-type-php-1.test" should use the pinned "easyengine/php8.5" image
     And the "nginx" service of site "bh-site-type-php-1.test" should be attached to the docker network "ee-global-frontend-network"
     And the "php" service of site "bh-site-type-php-1.test" should not be attached to the docker network "ee-global-frontend-network"
     And the "php" service of site "bh-site-type-php-1.test" should have the restart policy "always"
-    And the php service of site "bh-site-type-php-1.test" should run PHP "8.4"
+    And the php service of site "bh-site-type-php-1.test" should run PHP "8.5"
 
   Scenario: The site is reachable over HTTP and runs PHP
     Given a php site "bh-site-type-php-1.test" exists

@@ -4,28 +4,28 @@ Feature: PHP versions of php sites (create --php, update --php)
   Scenario Outline: Create a php site on every supported PHP version
     When I run "bin/ee site create <site> --type=php --php=<version>"
     Then the command should succeed
-    And the site "<site>" should have the field "php_version" set to "<version>"
+    And the site "<site>" should have the field "php_version" set to "<stored>"
     And the "php" service of site "<site>" should use the pinned "<image>" image
     And the php service of site "<site>" should run PHP "<runs>"
     And a GET request to "http://<site>/" should return 200
     And the response should contain "Congratulations!"
     And the file "/opt/easyengine/sites/<site>/config/php/php/conf.d/custom.ini" should contain "<sendmail>"
 
-    # "latest" maps to the php8.5 image (Site_PHP_Docker); 8.6 is opt-in.
+    # "latest" is stored as the default version (8.5) and runs its image; 8.6 is opt-in.
     Examples:
-      | site                     | version | image              | runs | sendmail                    |
-      | bh-site-type-php-40.test | 5.6     | easyengine/php5.6  | 5.6  | sendmail_path = /usr/sbin/sendmail -t -i -f no-reply@example.com |
-      | bh-site-type-php-41.test | 7.0     | easyengine/php7.0  | 7.0  | sendmail_path = /usr/bin/msmtp -t |
-      | bh-site-type-php-42.test | 7.2     | easyengine/php7.2  | 7.2  | sendmail_path = /usr/bin/msmtp -t |
-      | bh-site-type-php-43.test | 7.3     | easyengine/php7.3  | 7.3  | sendmail_path = /usr/bin/msmtp -t |
-      | bh-site-type-php-44.test | 7.4     | easyengine/php7.4  | 7.4  | sendmail_path = /usr/bin/msmtp -t |
-      | bh-site-type-php-45.test | 8.0     | easyengine/php8.0  | 8.0  | sendmail_path = /usr/bin/msmtp -t |
-      | bh-site-type-php-46.test | 8.1     | easyengine/php8.1  | 8.1  | sendmail_path = /usr/bin/msmtp -t |
-      | bh-site-type-php-47.test | 8.2     | easyengine/php8.2  | 8.2  | sendmail_path = /usr/bin/msmtp -t |
-      | bh-site-type-php-48.test | 8.3     | easyengine/php8.3  | 8.3  | sendmail_path = /usr/bin/msmtp -t |
-      | bh-site-type-php-49.test | 8.4     | easyengine/php8.4  | 8.4  | sendmail_path = /usr/bin/msmtp -t |
-      | bh-site-type-php-50.test | 8.5     | easyengine/php8.5  | 8.5  | sendmail_path = /usr/bin/msmtp -t |
-      | bh-site-type-php-51.test | latest  | easyengine/php8.5  | 8.5  | sendmail_path = /usr/bin/msmtp -t |
+      | site                     | version | stored | image              | runs | sendmail                    |
+      | bh-site-type-php-40.test | 5.6     | 5.6    | easyengine/php5.6  | 5.6  | sendmail_path = /usr/sbin/sendmail -t -i -f no-reply@example.com |
+      | bh-site-type-php-41.test | 7.0     | 7.0    | easyengine/php7.0  | 7.0  | sendmail_path = /usr/bin/msmtp -t |
+      | bh-site-type-php-42.test | 7.2     | 7.2    | easyengine/php7.2  | 7.2  | sendmail_path = /usr/bin/msmtp -t |
+      | bh-site-type-php-43.test | 7.3     | 7.3    | easyengine/php7.3  | 7.3  | sendmail_path = /usr/bin/msmtp -t |
+      | bh-site-type-php-44.test | 7.4     | 7.4    | easyengine/php7.4  | 7.4  | sendmail_path = /usr/bin/msmtp -t |
+      | bh-site-type-php-45.test | 8.0     | 8.0    | easyengine/php8.0  | 8.0  | sendmail_path = /usr/bin/msmtp -t |
+      | bh-site-type-php-46.test | 8.1     | 8.1    | easyengine/php8.1  | 8.1  | sendmail_path = /usr/bin/msmtp -t |
+      | bh-site-type-php-47.test | 8.2     | 8.2    | easyengine/php8.2  | 8.2  | sendmail_path = /usr/bin/msmtp -t |
+      | bh-site-type-php-48.test | 8.3     | 8.3    | easyengine/php8.3  | 8.3  | sendmail_path = /usr/bin/msmtp -t |
+      | bh-site-type-php-49.test | 8.4     | 8.4    | easyengine/php8.4  | 8.4  | sendmail_path = /usr/bin/msmtp -t |
+      | bh-site-type-php-50.test | 8.5     | 8.5    | easyengine/php8.5  | 8.5  | sendmail_path = /usr/bin/msmtp -t |
+      | bh-site-type-php-51.test | latest  | 8.5    | easyengine/php8.5  | 8.5  | sendmail_path = /usr/bin/msmtp -t |
 
   Scenario: Update the PHP version of a php site and keep custom php settings
     Given a php site "bh-site-type-php-52.test" exists

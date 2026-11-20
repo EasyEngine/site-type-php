@@ -261,6 +261,10 @@ class PHP extends EE_Site_Command {
 			}
 			\EE::confirm( sprintf( 'EEv4 does not support PHP %s. Continue with PHP %s?', $old_version, $this->site_data['php_version'] ) );
 		}
+		// Stored as the concrete version: a stored `latest` would move to a newer image on a later default bump and keep the old PHP config.
+		if ( 'latest' === $this->site_data['php_version'] ) {
+			$this->site_data['php_version'] = self::DEFAULT_PHP_VERSION;
+		}
 
 		\EE\Site\Utils\check_site_name_conflicts( $this->site_data['site_url'], $this->site_data['site_fs_path'] );
 

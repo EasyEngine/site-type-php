@@ -32,7 +32,7 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `--force` (reset non-empty remote DB) | not covered: dead code today (remote credentials are never checked), needs a reachable remote MariaDB |
 | DB name / user collisions on rollback | database.feature: `--dbname`/`--dbuser` of another site refused, colliding default names refused by the volume check, a taken default name gets a `_2` suffix, each on its own sites (regression checks for EasyEngine/site-command#503 and EasyEngine/site-type-php#115) |
 | mysql CLI in the php container against the global and local db | not covered yet: the MariaDB client in php8.2+ images demands TLS, which the EasyEngine MariaDB doesn't offer (its 2 scenarios come back with the fix) |
-| `--php=<v>` every supported version + `latest` | php-version.feature outline (12 examples, `@slow`) |
+| `--php=<v>` every supported version + `latest` (stored as the default version, 8.5) | php-version.feature outline (12 examples, `@slow`) |
 | `--php` default 8.5 | create.feature "The site row holds the php defaults", "The compose file ..." |
 | `--php` invalid values | create.feature outline "An unsupported --php value is rejected" (4 examples) |
 | `--php` loosely matching values (`8`, `7`, `8.40`, `8.4.1`) | not covered: core's synopsis check compares loosely and lets them through (`8.4.1` only on PHP 7), then create() compares as strings and asks whether to continue with the fallback version (8.5, 7.4 or 5.6; `8.4.1` is refused as unsupported). The php type has no `--yes`, so the prompt reads stdin |

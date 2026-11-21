@@ -32,10 +32,10 @@ Scope: `ee site create --type=php` and everything php-specific (`src/PHP.php`, `
 | `--force` (reset non-empty remote DB) | not covered: dead code today (remote credentials are never checked), needs a reachable remote MariaDB |
 | DB name / user collisions on rollback | database.feature: `--dbname`/`--dbuser` of another site refused, colliding default names refused by the volume check, a taken default name gets a `_2` suffix, each on its own sites (regression checks for EasyEngine/site-command#503 and EasyEngine/site-type-php#115) |
 | mysql CLI in the php container against the global and local db | not covered yet: the MariaDB client in php8.2+ images demands TLS, which the EasyEngine MariaDB doesn't offer (its 2 scenarios come back with the fix) |
-| `--php=<v>` every supported version + `latest` | php-version.feature outline (12 examples, `@slow`) |
-| `--php` default 8.4 | create.feature "The site row holds the php defaults", "The compose file ..." |
+| `--php=<v>` every supported version + `latest` (stored as the default version, 8.5) | php-version.feature outline (12 examples, `@slow`) |
+| `--php` default 8.5 | create.feature "The site row holds the php defaults", "The compose file ..." |
 | `--php` invalid values | create.feature outline "An unsupported --php value is rejected" (4 examples) |
-| `--php` loosely matching values (`8`, `7`, `8.40`, `8.4.1`) | not covered yet: a loose `in_array()` accepts them and the create fails late on a missing image (its outline, 4 examples, comes back with the fix) |
+| `--php` loosely matching values (`8`, `7`, `8.40`, `8.4.1`) | not covered: core's synopsis check compares loosely and lets them through (`8.4.1` only on PHP 7), then create() compares as strings and asks whether to continue with the fallback version (8.5, 7.4 or 5.6; `8.4.1` is refused as unsupported). The php type has no `--yes`, so the prompt reads stdin |
 | `--php=<v>` without `--type` (EE3 compat mapping) | not covered yet: the version is consumed as the EE3 `--php` type flag and dropped (its scenario comes back with the fix) |
 | EE3 `--mysql` compat flag | create.feature "The legacy --mysql flag creates a php site with a database" |
 | php 5.6 ini (sendmail) vs msmtp | php-version.feature outline `sendmail` column |
@@ -140,7 +140,7 @@ Estimated coverage: about 88% of the inventory items above (php-specific items: 
 
 Scenarios for open bugs aren't in the suite: each comes back with the PR that fixes its bug. The inventory above marks them "not covered yet". Bugs without a clean black-box assertion aren't tested: php sites render `.env`/`php.ini` from site-type-wp's templates; site-command's `ltrim($url, 'www.')` character-list bug; `var_dump()` in the inherit error; `--ssl` options not enforced on create (documented by the `--ssl=bogus` rollback scenario); no `/etc/hosts` entry for custom/inherit SSL sites.
 
-Other notes from the code: `--php=latest` maps to the php8.4 image, not the newest supported (8.5), maybe intended; `update --add/--delete-alias-domains` doesn't regenerate `main.conf` (stale `server_name`, harmless); a site created with `--dbhost=global-db:<port>` and user-supplied credentials is stored with `db_host=global-db`, so `site delete` drops that pre-existing database and user. The old suite's label assertion was inverted and its mysql checks passed vacuously; both fixed in this context.
+Other notes from the code: `update --add/--delete-alias-domains` doesn't regenerate `main.conf` (stale `server_name`, harmless); a site created with `--dbhost=global-db:<port>` and user-supplied credentials is stored with `db_host=global-db`, so `site delete` drops that pre-existing database and user. The old suite's label assertion was inverted and its mysql checks passed vacuously; both fixed in this context.
 
 ## Tags
 
